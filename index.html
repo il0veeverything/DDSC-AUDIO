@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DDSC AUDIO</title>
+  <title>DDSC AUDIO - Debugger</title>
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -89,7 +89,6 @@
       padding: 16px;
       cursor: pointer;
       background: var(--md-sys-color-bg);
-      transition: border-color 0.2s;
     }
     .file-input-wrapper input[type="file"] {
       position: absolute;
@@ -106,38 +105,142 @@
       font-weight: 500;
     }
 
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .range-box {
+      background: var(--md-sys-color-bg);
+      border: 1px solid var(--md-sys-color-surface-variant);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .waveform-container {
+      width: 100%;
+      height: 60px;
+      background: #0f172a;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    #waveformCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .slider-container {
+      position: relative;
+      height: 36px;
+      margin: 5px 0;
+    }
+
+    .slider-track {
+      position: absolute;
+      top: 14px;
+      left: 0;
+      right: 0;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--md-sys-color-surface-variant);
+    }
+
+    .slider-range-highlight {
+      position: absolute;
+      top: 14px;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--md-sys-color-primary);
+    }
+
+    .slider-container input[type="range"] {
+      position: absolute;
+      top: 8px;
+      width: 100%;
+      pointer-events: none;
+      -webkit-appearance: none;
+      appearance: none;
+      background: none;
+      margin: 0;
+    }
+
+    .slider-container input[type="range"]::-webkit-slider-thumb {
+      pointer-events: auto;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--md-sys-color-primary);
+      border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+
+    .time-readout {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .call-detect-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .input-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .input-field label {
+      font-size: 0.75rem;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
     .input-row {
       display: flex;
       align-items: center;
       gap: 12px;
     }
     .select-box, .text-input {
-      flex: 1;
-      padding: 12px;
-      font-size: 1rem;
+      width: 100%;
+      padding: 10px;
+      font-size: 0.9rem;
       border: 1px solid var(--md-sys-color-outline);
       border-radius: 8px;
       background: var(--md-sys-color-surface);
       color: var(--md-sys-color-on-surface);
       outline: none;
     }
-    .text-input { width: 80px; flex: initial; }
 
     .btn {
       width: 100%;
-      height: 48px;
-      border-radius: 24px;
+      height: 44px;
+      border-radius: 22px;
       border: none;
       background-color: var(--md-sys-color-primary);
       color: var(--md-sys-color-on-primary);
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 500;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       cursor: pointer;
-      transition: opacity 0.2s;
     }
     .btn:disabled {
       background-color: var(--md-sys-color-surface-variant);
@@ -148,6 +251,20 @@
       background-color: transparent;
       color: var(--md-sys-color-primary);
       border: 1px solid var(--md-sys-color-outline);
+    }
+    .btn-small {
+      height: 38px;
+      font-size: 0.85rem;
+      padding: 0 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
     }
 
     .progress-bar {
@@ -170,7 +287,7 @@
       padding: 12px 0;
     }
     .metric-hero .val {
-      font-size: 3.5rem;
+      font-size: 2.5rem;
       font-weight: 700;
       color: var(--md-sys-color-primary);
       line-height: 1;
@@ -201,9 +318,9 @@
       color: var(--md-sys-color-on-surface-variant);
     }
 
-    canvas {
+    canvas.chart-preview {
       width: 100%;
-      height: 140px;
+      height: 180px;
       background-color: #0f172a;
       border-radius: 12px;
       margin-top: 16px;
@@ -228,6 +345,80 @@
       overflow-y: auto;
       margin-top: 8px;
     }
+
+    .debug-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .debug-modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .debug-modal-card {
+      background: #18181b;
+      color: #f4f4f5;
+      border-radius: 16px;
+      padding: 20px;
+      width: 95%;
+      max-width: 750px;
+      height: 92vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .debug-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #27272a;
+      padding-bottom: 8px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .debug-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .debug-toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+    .debug-canvas-container {
+      position: relative;
+      flex: 1;
+      background: #09090b;
+      border-radius: 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border: 1px solid #27272a;
+      user-select: none;
+      -webkit-overflow-scrolling: touch;
+      overflow-anchor: none;
+    }
+    #debugCanvas {
+      display: block;
+      width: 100%;
+      cursor: default;
+    }
+    .debug-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -245,14 +436,52 @@
 
   <div class="control-grid">
     <div class="file-input-wrapper">
-      <input type="file" id="audioFile" accept="audio/*" disabled>
+      <input type="file" id="mediaFile" accept="audio/*,video/*,.mp4,.mov,.webm,.avi,.mkv,.csv" disabled>
       <div class="file-input-label">
-        <span class="material-icons">audio_file</span>
-        <span id="fileName">音声ファイルを選択</span>
+        <span class="material-icons" id="fileIcon">perm_media</span>
+        <span id="fileName">音声/動画/CSVファイルを選択</span>
       </div>
     </div>
 
-    <div class="input-row">
+    <div class="range-box" id="rangeBox" style="display:none;">
+      <div class="section-title">
+        <span class="material-icons" style="font-size:1.1rem;">space_bar</span> 計測範囲設定
+      </div>
+
+      <div class="waveform-container">
+        <canvas id="waveformCanvas"></canvas>
+      </div>
+
+      <div class="call-detect-panel">
+        <div class="input-field">
+          <label for="callFreq">コール周波数 (Hz)</label>
+          <input type="number" id="callFreq" class="text-input" value="586" step="1">
+        </div>
+        <div class="input-field">
+          <label for="callDur">継続時間 (秒)</label>
+          <input type="number" id="callDur" class="text-input" value="0.35" step="0.05">
+        </div>
+        <button id="detectCallBtn" class="btn btn-secondary btn-small">
+          <span class="material-icons" style="font-size:1rem;">graphic_eq</span>
+          コール音自動検出
+        </button>
+      </div>
+
+      <div class="slider-container">
+        <div class="slider-track"></div>
+        <div class="slider-range-highlight" id="rangeHighlight"></div>
+        <input type="range" id="startSlider" min="0" max="100" value="0" step="0.1">
+        <input type="range" id="endSlider" min="0" max="100" value="100" step="0.1">
+      </div>
+
+      <div class="time-readout">
+        <span>開始: <strong id="startTimeLabel">0.00</strong>s</span>
+        <span>計測長: <strong id="durationLabel">0.00</strong>s</span>
+        <span>終了: <strong id="endTimeLabel">0.00</strong>s</span>
+      </div>
+    </div>
+
+    <div class="input-row" id="paceRow" style="display:none;">
       <select id="paceSelect" class="select-box">
         <option value="100">ペース: 100</option>
         <option value="110">ペース: 110</option>
@@ -278,8 +507,8 @@
 
 <div class="card" id="resultCard" style="display:none;">
   <div class="metric-hero">
-    <div class="val" id="totalCount">0</div>
-    <div class="unit">カウント (ステップ ÷ 2)</div>
+    <div class="val" id="countStepDisplay">0 (0)</div>
+    <div class="unit">カウント (ステップ)</div>
   </div>
 
   <div class="metrics-sub">
@@ -293,12 +522,26 @@
     </div>
   </div>
 
-  <canvas id="chart"></canvas>
+  <canvas id="chart" class="chart-preview"></canvas>
 
-  <button id="downloadCsvBtn" class="btn btn-secondary" style="margin-top: 16px;">
-    <span class="material-icons">download</span>
-    CSV出力
-  </button>
+  <div class="btn-group">
+    <button id="openDebugModalBtn" class="btn" style="background-color: #10b981;">
+      <span class="material-icons">bug_report</span>
+      デバッグ機能（学習データ作成・編集）
+    </button>
+    <button id="downloadPaceChartBtn" class="btn btn-secondary">
+      <span class="material-icons">image</span>
+      ペース分析グラフ画像（PNG）を出力
+    </button>
+    <button id="downloadStepCsvBtn" class="btn btn-secondary">
+      <span class="material-icons">table_rows</span>
+      ステップCSV出力
+    </button>
+    <button id="downloadCsvBtn" class="btn btn-secondary">
+      <span class="material-icons">download</span>
+      全判定データCSV出力
+    </button>
+  </div>
 
   <details class="log-details">
     <summary>ログ表示</summary>
@@ -306,26 +549,102 @@
   </details>
 </div>
 
+<div class="debug-modal-overlay" id="debugModal">
+  <div class="debug-modal-card">
+    <div class="debug-header">
+      <div class="debug-title">デバッグ・ステップ学習データエディタ</div>
+      <div class="debug-toolbar">
+        <label for="verticalZoom">縦拡大:</label>
+        <input type="range" id="verticalZoom" min="1" max="15" value="7.5" step="0.5" style="width: 80px;">
+        <span id="zoomLabel">7.5x</span>
+        <button class="btn btn-secondary btn-small" id="addStepBtn">＋ ステップを追加</button>
+      </div>
+    </div>
+
+    <div style="font-size: 0.8rem; color: #a1a1aa;">
+      * 表示領域: 1000Hz〜 / 赤:低音量 → 白:中音量 → 緑:高音量<br>
+      * 左端（<span class="material-icons" style="font-size:12px; color:#ef4444;">delete</span>）: タップ削除 / 中央▶: 目印 / 右端（<span class="material-icons" style="font-size:12px; color:#0284c7;">open_with</span>）: ドラッグ移動
+    </div>
+
+    <div class="debug-canvas-container" id="debugCanvasContainer">
+      <canvas id="debugCanvas"></canvas>
+    </div>
+
+    <div class="debug-actions">
+      <span id="debugStatusText" style="font-size: 0.8rem; color: #38bdf8;">準備完了</span>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary btn-small" id="downloadEditorPaceChartBtn">
+          <span class="material-icons" style="font-size:1rem;">image</span>
+          グラフ画像保存
+        </button>
+        <button class="btn btn-secondary btn-small" id="closeDebugModalBtn">完了</button>
+        <button class="btn btn-small" id="exportLearningCsvBtn">学習用CSV出力</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   let session = null;
   let inputName = '';
   let outputNames = [];
   let generatedCsvText = "";
+  let generatedStepCsvText = "";
+  let decodedAudioBuffer = null;
+
+  let rawSpectrogramMatrix = [];
+  let freqBinHzList = [];
+  let frameStepSec = 0.01;
+  let currentStartSec = 0;
+  let currentEndSec = 0;
+  let editableHitFrames = [];
+  let verticalZoomFactor = 7.5;
+  let cachedDeltaDbSeries = [];
+  let cachedReleaseThreshSeries = [];
 
   const statusBar = document.getElementById('statusBar');
   const statusText = document.getElementById('statusText');
-  const fileInput = document.getElementById('audioFile');
+  const fileInput = document.getElementById('mediaFile');
   const fileName = document.getElementById('fileName');
+  const fileIcon = document.getElementById('fileIcon');
   const paceSelect = document.getElementById('paceSelect');
   const paceInput = document.getElementById('paceInput');
+  const paceRow = document.getElementById('paceRow');
   const analyzeBtn = document.getElementById('analyzeBtn');
   const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+  const downloadStepCsvBtn = document.getElementById('downloadStepCsvBtn');
+  const downloadPaceChartBtn = document.getElementById('downloadPaceChartBtn');
   const resultCard = document.getElementById('resultCard');
   const progressBar = document.getElementById('progressBar');
   const progressFill = document.getElementById('progressFill');
-  const debugLog = document.getElementById('debugLog');
   const canvas = document.getElementById('chart');
-  const ctx = canvas.getContext('2d');
+
+  const rangeBox = document.getElementById('rangeBox');
+  const startSlider = document.getElementById('startSlider');
+  const endSlider = document.getElementById('endSlider');
+  const rangeHighlight = document.getElementById('rangeHighlight');
+  const startTimeLabel = document.getElementById('startTimeLabel');
+  const endTimeLabel = document.getElementById('endTimeLabel');
+  const durationLabel = document.getElementById('durationLabel');
+  const callFreqInput = document.getElementById('callFreq');
+  const callDurInput = document.getElementById('callDur');
+  const detectCallBtn = document.getElementById('detectCallBtn');
+
+  const waveformCanvas = document.getElementById('waveformCanvas');
+  const waveformCtx = waveformCanvas.getContext('2d');
+
+  const openDebugModalBtn = document.getElementById('openDebugModalBtn');
+  const debugModal = document.getElementById('debugModal');
+  const closeDebugModalBtn = document.getElementById('closeDebugModalBtn');
+  const debugCanvas = document.getElementById('debugCanvas');
+  const debugCtx = debugCanvas.getContext('2d');
+  const debugCanvasContainer = document.getElementById('debugCanvasContainer');
+  const addStepBtn = document.getElementById('addStepBtn');
+  const exportLearningCsvBtn = document.getElementById('exportLearningCsvBtn');
+  const debugStatusText = document.getElementById('debugStatusText');
+  const verticalZoomInput = document.getElementById('verticalZoom');
+  const zoomLabel = document.getElementById('zoomLabel');
+  const downloadEditorPaceChartBtn = document.getElementById('downloadEditorPaceChartBtn');
 
   function calculateCooldownMs(pace) {
     const p = parseFloat(pace);
@@ -366,16 +685,300 @@
   }
   loadModel();
 
-  fileInput.onchange = () => {
-    if (fileInput.files[0]) {
-      fileName.textContent = fileInput.files[0].name;
-      analyzeBtn.disabled = false;
+  fileInput.onchange = async () => {
+    if (!fileInput.files[0]) return;
+
+    const file = fileInput.files[0];
+    fileName.textContent = file.name;
+
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      fileIcon.textContent = 'table_chart';
+      await processCsvUpload(file);
+    } else {
+      fileIcon.textContent = file.type.startsWith('video/') ? 'movie' : 'audiotrack';
+      await processAudioVideoUpload(file);
     }
   };
 
+  async function processCsvUpload(file) {
+    analyzeBtn.disabled = true;
+    rangeBox.style.display = 'none';
+    paceRow.style.display = 'none';
+    decodedAudioBuffer = null;
+
+    setStatus("CSVファイルをロード中...");
+    try {
+      const text = await file.text();
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) throw new Error("無効なCSVファイルです。");
+
+      const header = lines[0].split(',').map(h => h.trim());
+      const isCountIdx = header.indexOf("Is_Count");
+      const timeIdx = header.indexOf("Time_Sec");
+      const deltaDbIdx = header.indexOf("Delta_dB");
+      const releaseIdx = header.indexOf("Release_Threshold");
+
+      if (isCountIdx === -1) {
+        throw new Error("CSVに 'Is_Count' 列が存在しません。全判定データCSVを選択してください。");
+      }
+
+      const hzIndices = [];
+      freqBinHzList = [];
+      header.forEach((h, idx) => {
+        if (h.endsWith('Hz')) {
+          hzIndices.push(idx);
+          freqBinHzList.push(parseInt(h.replace('Hz', '')));
+        }
+      });
+
+      if (hzIndices.length === 0) {
+        throw new Error("CSV内に周波数データ (Hz) が見つかりませんでした。");
+      }
+
+      rawSpectrogramMatrix = [];
+      editableHitFrames = [];
+      cachedDeltaDbSeries = [];
+      cachedReleaseThreshSeries = [];
+
+      for (let fIdx = 1; fIdx < lines.length; fIdx++) {
+        const line = lines[fIdx].trim();
+        if (!line) continue;
+        const cols = line.split(',');
+
+        const bins = new Float32Array(hzIndices.length);
+        for (let b = 0; b < hzIndices.length; b++) {
+          bins[b] = parseFloat(cols[hzIndices[b]]) || -100;
+        }
+        rawSpectrogramMatrix.push(bins);
+
+        if (deltaDbIdx !== -1) cachedDeltaDbSeries.push(parseFloat(cols[deltaDbIdx]) || 0);
+        if (releaseIdx !== -1) cachedReleaseThreshSeries.push(parseFloat(cols[releaseIdx]) || 0);
+
+        if (parseInt(cols[isCountIdx]) === 1) {
+          editableHitFrames.push(rawSpectrogramMatrix.length - 1);
+        }
+      }
+
+      if (timeIdx !== -1 && rawSpectrogramMatrix.length > 1) {
+        currentStartSec = parseFloat(lines[1].split(',')[timeIdx]) || 0;
+        const secondSec = parseFloat(lines[2].split(',')[timeIdx]) || (currentStartSec + 0.01);
+        frameStepSec = Math.max(0.001, secondSec - currentStartSec);
+        currentEndSec = currentStartSec + rawSpectrogramMatrix.length * frameStepSec;
+      }
+
+      refreshOutputs(cachedDeltaDbSeries, cachedReleaseThreshSeries);
+      resultCard.style.display = 'block';
+      setStatus(`CSVの読み込み完了 (${editableHitFrames.length} ステップ)`, "ready");
+    } catch (err) {
+      console.error(err);
+      setStatus(`CSV読込エラー: ${err.message}`, "error");
+    }
+  }
+
+  async function processAudioVideoUpload(file) {
+    analyzeBtn.disabled = true;
+    rangeBox.style.display = 'none';
+    paceRow.style.display = 'none';
+    decodedAudioBuffer = null;
+
+    setStatus("ファイルを読み込み中...");
+    progressBar.style.display = "block";
+    progressFill.style.width = "0%";
+
+    try {
+      const arrayBuffer = await readFileWithProgress(file, (percent) => {
+        progressFill.style.width = `${percent}%`;
+      });
+
+      setStatus("音声トラックをデコード中...");
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      decodedAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+      const totalSec = decodedAudioBuffer.duration;
+      startSlider.max = totalSec;
+      endSlider.max = totalSec;
+      startSlider.value = 0;
+      endSlider.value = totalSec;
+
+      rangeBox.style.display = 'flex';
+      paceRow.style.display = 'flex';
+      
+      updateRangeUI();
+      detectCallSignal(false);
+
+      setStatus("準備完了 (計測範囲を設定してください)", "ready");
+      analyzeBtn.disabled = false;
+    } catch (err) {
+      console.error(err);
+      setStatus(`読み込みエラー: ${err.message}`, "error");
+    } finally {
+      progressBar.style.display = "none";
+    }
+  }
+
+  // 高速波形描画ロジック
+  function drawWaveformFast() {
+    if (!decodedAudioBuffer) return;
+
+    const width = waveformCanvas.width = waveformCanvas.clientWidth || 500;
+    const height = waveformCanvas.height = waveformCanvas.clientHeight || 60;
+
+    waveformCtx.clearRect(0, 0, width, height);
+
+    const channelData = decodedAudioBuffer.getChannelData(0);
+    const step = Math.ceil(channelData.length / width);
+    const amp = height / 2;
+
+    waveformCtx.fillStyle = '#334155';
+    waveformCtx.beginPath();
+
+    for (let i = 0; i < width; i++) {
+      let min = 1.0;
+      let max = -1.0;
+      const start = i * step;
+      const end = Math.min(start + step, channelData.length);
+
+      for (let j = start; j < end; j += 4) { // 4サンプル飛ばしで爆速化
+        const val = channelData[j];
+        if (val < min) min = val;
+        if (val > max) max = val;
+      }
+
+      if (min > max) { min = 0; max = 0; }
+      waveformCtx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+    }
+
+    // ハイライト描画 (シークバー範囲)
+    const maxVal = parseFloat(startSlider.max) || 100;
+    const startVal = parseFloat(startSlider.value);
+    const endVal = parseFloat(endSlider.value);
+
+    const startX = (startVal / maxVal) * width;
+    const endX = (endVal / maxVal) * width;
+
+    waveformCtx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+    waveformCtx.fillRect(startX, 0, endX - startX, height);
+
+    waveformCtx.strokeStyle = '#38bdf8';
+    waveformCtx.lineWidth = 1.5;
+    waveformCtx.strokeRect(startX, 0, endX - startX, height);
+  }
+
+  function updateRangeUI() {
+    let startVal = parseFloat(startSlider.value);
+    let endVal = parseFloat(endSlider.value);
+
+    if (startVal > endVal - 0.1) {
+      if (document.activeElement === startSlider) {
+        startSlider.value = endVal - 0.1;
+        startVal = parseFloat(startSlider.value);
+      } else {
+        endSlider.value = startVal + 0.1;
+        endVal = parseFloat(endSlider.value);
+      }
+    }
+
+    const maxVal = parseFloat(startSlider.max) || 100;
+    const startPct = (startVal / maxVal) * 100;
+    const endPct = (endVal / maxVal) * 100;
+
+    rangeHighlight.style.left = `${startPct}%`;
+    rangeHighlight.style.width = `${endPct - startPct}%`;
+
+    startTimeLabel.textContent = startVal.toFixed(2);
+    endTimeLabel.textContent = endVal.toFixed(2);
+    durationLabel.textContent = Math.max(0, endVal - startVal).toFixed(2);
+
+    drawWaveformFast();
+  }
+
+  startSlider.oninput = updateRangeUI;
+  endSlider.oninput = updateRangeUI;
+
+  function goertzelMag(pcm, sampleRate, targetFreq, offset, length) {
+    const k = Math.round((length * targetFreq) / sampleRate);
+    const w = (2 * Math.PI * k) / length;
+    const cosine = Math.cos(w);
+    const sine = Math.sin(w);
+    const coeff = 2 * cosine;
+
+    let q0 = 0, q1 = 0, q2 = 0;
+    const end = Math.min(pcm.length, offset + length);
+
+    for (let i = offset; i < end; i++) {
+      q0 = coeff * q1 - q2 + pcm[i];
+      q2 = q1;
+      q1 = q0;
+    }
+
+    const real = q1 - q2 * cosine;
+    const imag = q2 * sine;
+    return Math.sqrt(real * real + imag * imag) / (length / 2);
+  }
+
+  function detectCallSignal(showMessages = true) {
+    if (!decodedAudioBuffer) return;
+
+    const targetFreq = parseFloat(callFreqInput.value) || 586;
+    const minDurationSec = parseFloat(callDurInput.value) || 0.35;
+
+    const rawPcm = decodedAudioBuffer.getChannelData(0);
+    const sr = decodedAudioBuffer.sampleRate;
+    const totalSec = decodedAudioBuffer.duration;
+
+    const windowSec = 0.05;
+    const windowSamples = Math.floor(sr * windowSec);
+    const stepSamples = Math.floor(sr * 0.02);
+    const minConsecutiveHits = Math.ceil(minDurationSec / 0.02);
+
+    const hits = [];
+    const threshold = 0.025;
+
+    for (let i = 0; i <= rawPcm.length - windowSamples; i += stepSamples) {
+      const mag = goertzelMag(rawPcm, sr, targetFreq, i, windowSamples);
+      if (mag > threshold) hits.push(i / sr);
+    }
+
+    if (hits.length === 0) {
+      if (showMessages) alert(`${targetFreq}Hz のコール音が見つかりませんでした。`);
+      return;
+    }
+
+    const blocks = [];
+    let currentBlock = [hits[0]];
+
+    for (let i = 1; i < hits.length; i++) {
+      if (hits[i] - hits[i - 1] <= 0.05) {
+        currentBlock.push(hits[i]);
+      } else {
+        if (currentBlock.length >= minConsecutiveHits) blocks.push(currentBlock);
+        currentBlock = [hits[i]];
+      }
+    }
+    if (currentBlock.length >= minConsecutiveHits) blocks.push(currentBlock);
+
+    if (blocks.length === 0) {
+      if (showMessages) alert(`${minDurationSec}秒以上継続する ${targetFreq}Hz コール音が見つかりませんでした。`);
+      return;
+    }
+
+    const firstCallStart = blocks[0][0];
+    const lastCallEnd = blocks[blocks.length - 1][blocks[blocks.length - 1].length - 1] + windowSec;
+
+    startSlider.value = firstCallStart.toFixed(2);
+    endSlider.value = Math.min(totalSec, lastCallEnd).toFixed(2);
+    updateRangeUI();
+
+    if (showMessages) {
+      setStatus(`コール音を検出しました (${firstCallStart.toFixed(2)}s 〜 ${lastCallEnd.toFixed(2)}s)`, "ready");
+    }
+  }
+
+  detectCallBtn.onclick = () => detectCallSignal(true);
+
   async function readFileWithProgress(file, onProgress) {
     const totalSize = file.size;
-    const chunkSize = 1024 * 1024;
+    const chunkSize = 2 * 1024 * 1024;
     let loaded = 0;
     const chunks = [];
 
@@ -399,38 +1002,42 @@
   }
 
   analyzeBtn.onclick = async () => {
-    const file = fileInput.files[0];
-    if (!file || !session) return;
+    if (!decodedAudioBuffer || !session) return;
 
     const currentPace = paceSelect.value === 'custom' ? parseFloat(paceInput.value) : parseFloat(paceSelect.value);
     const minDistanceMs = calculateCooldownMs(currentPace);
+
+    currentStartSec = parseFloat(startSlider.value);
+    currentEndSec = parseFloat(endSlider.value);
+
+    if (currentStartSec >= currentEndSec) {
+      alert("計測範囲の指定が不正です。");
+      return;
+    }
 
     analyzeBtn.disabled = true;
     fileInput.disabled = true;
     paceSelect.disabled = true;
     paceInput.disabled = true;
+    detectCallBtn.disabled = true;
     downloadCsvBtn.disabled = true;
+    downloadStepCsvBtn.disabled = true;
     resultCard.style.display = "none";
     progressBar.style.display = "block";
     progressFill.style.width = "0%";
-    debugLog.textContent = "";
-    
-    setStatus("音声読み込み中...");
+
+    setStatus("指定範囲の音声データを抽出中...");
 
     try {
-      const arrayBuffer = await readFileWithProgress(file, (percent) => {
-        progressFill.style.width = `${percent}%`;
-      });
+      const sampleRateCache = decodedAudioBuffer.sampleRate;
+      const fullPcm = decodedAudioBuffer.getChannelData(0);
 
-      setStatus("音声デコード中...");
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      const startSample = Math.floor(currentStartSec * sampleRateCache);
+      const endSample = Math.min(fullPcm.length, Math.floor(currentEndSec * sampleRateCache));
+      const rawPcm = fullPcm.subarray(startSample, endSample);
 
-      const rawPcm = audioBuffer.getChannelData(0);
-      const sampleRateCache = audioBuffer.sampleRate;
-      
       const fftSize = 1024;
-      const frameStepSec = 0.01;
+      frameStepSec = 0.01;
       const hopSize = Math.round(sampleRateCache * frameStepSec);
       const binHz = sampleRateCache / fftSize;
 
@@ -438,13 +1045,13 @@
       const maxBinIdx = Math.floor(maxFreqLimit / binHz);
       const numFreqBins = maxBinIdx + 1;
 
-      const freqBinHzList = [];
+      freqBinHzList = [];
       for (let k = 0; k <= maxBinIdx; k++) {
         freqBinHzList.push(Math.round(k * binHz));
       }
 
-      const totalFrames = Math.floor((rawPcm.length - fftSize) / hopSize);
-      if (totalFrames <= 0) throw new Error("音声が短すぎます");
+      const totalSteps = Math.floor((rawPcm.length - fftSize) / hopSize);
+      if (totalSteps <= 0) throw new Error("指定された計測範囲が短すぎます");
 
       const windowFunc = new Float32Array(fftSize);
       for (let i = 0; i < fftSize; i++) {
@@ -452,9 +1059,7 @@
       }
 
       setStatus("特徴量抽出中...");
-      
-      const spectrogramMatrix = [];
-      const totalSteps = Math.floor((rawPcm.length - fftSize) / hopSize);
+      rawSpectrogramMatrix = [];
 
       for (let i = 0, frameCount = 0; i <= rawPcm.length - fftSize; i += hopSize, frameCount++) {
         const bins = new Float32Array(numFreqBins);
@@ -469,7 +1074,7 @@
           const mag = Math.sqrt(re * re + im * im) / (fftSize / 2);
           bins[k] = mag > 0.00001 ? 20 * Math.log10(mag) : -100;
         }
-        spectrogramMatrix.push(bins);
+        rawSpectrogramMatrix.push(bins);
 
         if (frameCount % 200 === 0 || frameCount === totalSteps - 1) {
           progressFill.style.width = `${Math.round((frameCount / totalSteps) * 100)}%`;
@@ -480,7 +1085,7 @@
       const highFreqStartBin = freqBinHzList.findIndex(f => f >= 1500);
       const startBin = highFreqStartBin >= 0 ? highFreqStartBin : 0;
 
-      const powerSeries = spectrogramMatrix.map(bins => {
+      const powerSeries = rawSpectrogramMatrix.map(bins => {
         let sum = 0, count = 0;
         for (let k = startBin; k < bins.length; k++) {
           sum += bins[k];
@@ -489,8 +1094,8 @@
         return count > 0 ? sum / count : -100;
       });
 
-      const deltaDbSeries = [];
-      const releaseThreshSeries = [];
+      cachedDeltaDbSeries = [];
+      cachedReleaseThreshSeries = [];
       let currentThresh = 0.0;
 
       for (let i = 0; i < powerSeries.length; i++) {
@@ -501,105 +1106,47 @@
         }
 
         const delta = Math.max(0, powerSeries[i] - minBase);
-        deltaDbSeries.push(delta);
+        cachedDeltaDbSeries.push(delta);
 
-        if (delta > currentThresh) {
-          currentThresh = delta;
-        } else {
-          currentThresh = Math.max(0.0, currentThresh * 0.85);
-        }
-        releaseThreshSeries.push(currentThresh);
+        if (delta > currentThresh) currentThresh = delta;
+        else currentThresh = Math.max(0.0, currentThresh * 0.85);
+        cachedReleaseThreshSeries.push(currentThresh);
       }
 
       setStatus("推論実行中...");
-      
-      const rawPredictions = [];
-      const isCountList = [];
-      const hitIndices = [];
-
+      editableHitFrames = [];
       const minDistanceFrames = Math.floor((minDistanceMs / 1000) / frameStepSec);
       let lastHitFrame = -minDistanceFrames;
 
-      for (let f = 0; f < spectrogramMatrix.length; f++) {
+      for (let f = 0; f < rawSpectrogramMatrix.length; f++) {
         const row219 = new Float32Array(219);
-        row219.set(spectrogramMatrix[f], 0);
-        row219[214] = deltaDbSeries[f];
-        row219[215] = releaseThreshSeries[f];
-        row219[216] = 100.0; 
-        row219[217] = 20.0;  
-        row219[218] = 0.0;   
+        row219.set(rawSpectrogramMatrix[f], 0);
+        row219[214] = cachedDeltaDbSeries[f];
+        row219[215] = cachedReleaseThreshSeries[f];
+        row219[216] = 100.0;
+        row219[217] = 20.0;
+        row219[218] = 0.0;
 
         const tensorInput = new ort.Tensor('float32', row219, [1, 219]);
-        const feeds = { [inputName]: tensorInput };
-
-        const results = await session.run(feeds, [outputNames[0]]);
-        const labelTensor = results[outputNames[0]];
-        const rawVal = Number(labelTensor.data[0]);
-        const isHit = (rawVal === 1);
-
-        rawPredictions.push(isHit ? 1 : 0);
+        const results = await session.run({ [inputName]: tensorInput }, [outputNames[0]]);
+        const isHit = (Number(results[outputNames[0]].data[0]) === 1);
 
         if (isHit && (f - lastHitFrame) >= minDistanceFrames) {
-          isCountList.push(1);
+          editableHitFrames.push(f);
           lastHitFrame = f;
-          hitIndices.push(f);
-        } else {
-          isCountList.push(0);
         }
 
-        if (f % 100 === 0 || f === spectrogramMatrix.length - 1) {
-          progressFill.style.width = `${Math.round(((f + 1) / spectrogramMatrix.length) * 100)}%`;
-          await new Promise(resolve => setTimeout(resolve, 0));
+        if (f % 100 === 0 || f === rawSpectrogramMatrix.length - 1) {
+          progressFill.style.width = `${Math.round(((f + 1) / rawSpectrogramMatrix.length) * 100)}%`;
+          await new Promise(r => setTimeout(r, 0));
         }
       }
 
-      const intervalMsSeries = new Array(spectrogramMatrix.length).fill("0.0");
-      const intervalValuesForAvg = [];
-
-      for (let k = 1; k < hitIndices.length; k++) {
-        const currFrame = hitIndices[k];
-        const prevFrame = hitIndices[k - 1];
-        const diffMs = ((currFrame - prevFrame) * frameStepSec * 1000).toFixed(1);
-        
-        intervalMsSeries[currFrame] = diffMs;
-        intervalValuesForAvg.push(parseFloat(diffMs));
-      }
-
-      const csvHeader = ["Time_Sec", ...freqBinHzList.map(h => `${h}Hz`), "Delta_dB", "Release_Threshold", "Is_Count", "Interval_ms"];
-      const csvRows = [csvHeader.join(",")];
-
-      for (let f = 0; f < spectrogramMatrix.length; f++) {
-        csvRows.push([
-          (f * frameStepSec).toFixed(3),
-          ...Array.from(spectrogramMatrix[f]).map(v => v.toFixed(2)),
-          deltaDbSeries[f].toFixed(2),
-          releaseThreshSeries[f].toFixed(2),
-          isCountList[f],
-          intervalMsSeries[f]
-        ].join(","));
-      }
-
-      generatedCsvText = csvRows.join("\n");
-      downloadCsvBtn.disabled = false;
-
-      const rawHitCount = hitIndices.length;
-      const halvedCount = rawHitCount / 2;
-
-      const avgInterval = intervalValuesForAvg.length > 0
-        ? (intervalValuesForAvg.reduce((a, b) => a + b, 0) / intervalValuesForAvg.length).toFixed(1)
-        : "0.0";
-
-      debugLog.textContent = `Model: vampire_ver2\nPace: ${currentPace}\nCooldown: ${minDistanceMs.toFixed(1)}ms\nSteps: ${rawHitCount}\nCount: ${halvedCount}\nFrames: ${spectrogramMatrix.length}`;
-
-      document.getElementById('totalCount').textContent = halvedCount;
-      document.getElementById('avgIntervalMs').textContent = avgInterval;
-      document.getElementById('positiveFrames').textContent = rawHitCount;
+      refreshOutputs(cachedDeltaDbSeries, cachedReleaseThreshSeries);
 
       setStatus("解析完了", "ready");
       progressBar.style.display = "none";
       resultCard.style.display = "block";
-
-      drawChart(rawPredictions, hitIndices);
 
     } catch (err) {
       console.error(err);
@@ -610,41 +1157,457 @@
       fileInput.disabled = false;
       paceSelect.disabled = false;
       paceInput.disabled = false;
+      detectCallBtn.disabled = false;
     }
   };
 
-  downloadCsvBtn.onclick = () => {
-    if (!generatedCsvText) return;
-    const blob = new Blob([generatedCsvText], { type: 'text/csv;charset=utf-8;' });
+  function refreshOutputs(deltaDbSeries, releaseThreshSeries) {
+    editableHitFrames.sort((a, b) => a - b);
+    const rawHitCount = editableHitFrames.length;
+    const halvedCount = rawHitCount / 2;
+
+    const intervalValuesForAvg = [];
+    const intervalMsSeries = new Array(rawSpectrogramMatrix.length).fill("0.0");
+
+    for (let k = 1; k < editableHitFrames.length; k++) {
+      const diffMs = ((editableHitFrames[k] - editableHitFrames[k - 1]) * frameStepSec * 1000).toFixed(1);
+      intervalMsSeries[editableHitFrames[k]] = diffMs;
+      intervalValuesForAvg.push(parseFloat(diffMs));
+    }
+
+    const csvHeader = ["Time_Sec", ...freqBinHzList.map(h => `${h}Hz`), "Delta_dB", "Release_Threshold", "Is_Count", "Interval_ms"];
+    const csvRows = [csvHeader.join(",")];
+
+    const dDb = deltaDbSeries || cachedDeltaDbSeries;
+    const rTh = releaseThreshSeries || cachedReleaseThreshSeries;
+
+    for (let f = 0; f < rawSpectrogramMatrix.length; f++) {
+      const isCountVal = editableHitFrames.includes(f) ? 1 : 0;
+      csvRows.push([
+        (currentStartSec + f * frameStepSec).toFixed(3),
+        ...Array.from(rawSpectrogramMatrix[f]).map(v => v.toFixed(2)),
+        dDb && dDb[f] !== undefined ? dDb[f].toFixed(2) : "0.00",
+        rTh && rTh[f] !== undefined ? rTh[f].toFixed(2) : "0.00",
+        isCountVal,
+        intervalMsSeries[f]
+      ].join(","));
+    }
+    generatedCsvText = csvRows.join("\n");
+    downloadCsvBtn.disabled = false;
+
+    const stepCsvRows = [["ID", "Count", "Timestamp_Sec", "Pace"].join(",")];
+    for (let k = 0; k < editableHitFrames.length; k++) {
+      const tsSec = currentStartSec + editableHitFrames[k] * frameStepSec;
+      const countVal = (k + 1) / 2;
+      let paceVal = "";
+      if (k > 0) {
+        const diffTs = tsSec - (currentStartSec + editableHitFrames[k - 1] * frameStepSec);
+        if (diffTs > 0) paceVal = (15 / diffTs).toFixed(2);
+      }
+      stepCsvRows.push([k + 1, countVal, tsSec.toFixed(3), paceVal].join(","));
+    }
+    generatedStepCsvText = stepCsvRows.join("\n");
+    downloadStepCsvBtn.disabled = false;
+
+    const avgInterval = intervalValuesForAvg.length > 0
+      ? (intervalValuesForAvg.reduce((a, b) => a + b, 0) / intervalValuesForAvg.length).toFixed(1)
+      : "0.0";
+
+    document.getElementById('countStepDisplay').textContent = `${halvedCount} (${rawHitCount})`;
+    document.getElementById('avgIntervalMs').textContent = avgInterval;
+    document.getElementById('positiveFrames').textContent = rawHitCount;
+
+    drawIntervalChart();
+  }
+
+  downloadCsvBtn.onclick = () => downloadFile(generatedCsvText, `ddsc_matrix_${Date.now()}.csv`);
+  downloadStepCsvBtn.onclick = () => downloadFile(generatedStepCsvText, `ddsc_steplog_${Date.now()}.csv`);
+  downloadPaceChartBtn.onclick = () => exportChartAsImage();
+  downloadEditorPaceChartBtn.onclick = () => exportChartAsImage();
+
+  function exportChartAsImage() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 800;
+    tempCanvas.height = 400;
+    drawIntervalChartToCanvas(tempCanvas);
+
+    const a = document.createElement('a');
+    a.href = tempCanvas.toDataURL('image/png');
+    a.download = `ddsc_pace_chart_${Date.now()}.png`;
+    a.click();
+  }
+
+  function downloadFile(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ddsc_vampire2_${Date.now()}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function drawIntervalChart() {
+    drawIntervalChartToCanvas(canvas);
+  }
+
+  function drawIntervalChartToCanvas(targetCanvas) {
+    const cCtx = targetCanvas.getContext('2d');
+    const width = targetCanvas.width = targetCanvas.clientWidth || targetCanvas.width;
+    const height = targetCanvas.height = targetCanvas.clientHeight || targetCanvas.height;
+    cCtx.clearRect(0, 0, width, height);
+
+    if (editableHitFrames.length < 2) {
+      cCtx.fillStyle = '#94a3b8';
+      cCtx.font = '12px Roboto, sans-serif';
+      cCtx.textAlign = 'center';
+      cCtx.fillText('データ件数が少なすぎるためグラフを表示できません', width / 2, height / 2);
+      return;
+    }
+
+    const points = [];
+    for (let k = 1; k < editableHitFrames.length; k++) {
+      const currSec = currentStartSec + editableHitFrames[k] * frameStepSec;
+      const prevSec = currentStartSec + editableHitFrames[k - 1] * frameStepSec;
+      points.push({ time: currSec, interval: (currSec - prevSec) * 1000 });
+    }
+
+    const margin = { top: 35, right: 30, bottom: 40, left: 55 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+
+    const times = points.map(p => p.time);
+    const intervals = points.map(p => p.interval);
+    let minX = Math.min(...times), maxX = Math.max(...times);
+    let minY = Math.min(...intervals), maxY = Math.max(...intervals);
+
+    const padX = (maxX - minX) * 0.05 || 1;
+    const padY = (maxY - minY) * 0.15 || 20;
+    minX -= padX; maxX += padX;
+    minY -= padY; maxY += padY;
+
+    function mapX(t) { return margin.left + ((t - minX) / (maxX - minX)) * plotWidth; }
+    function mapY(v) { return margin.top + plotHeight - ((v - minY) / (maxY - minY)) * plotHeight; }
+
+    cCtx.fillStyle = '#0f172a';
+    cCtx.fillRect(0, 0, width, height);
+
+    cCtx.strokeStyle = '#334155';
+    cCtx.lineWidth = 1;
+    cCtx.fillStyle = '#94a3b8';
+    cCtx.font = '11px Roboto, sans-serif';
+
+    for (let i = 0; i <= 4; i++) {
+      const gy = margin.top + (plotHeight / 4) * i;
+      const valY = maxY - ((maxY - minY) / 4) * i;
+      cCtx.beginPath(); cCtx.moveTo(margin.left, gy); cCtx.lineTo(margin.left + plotWidth, gy); cCtx.stroke();
+      cCtx.fillText(`${Math.round(valY)}ms`, margin.left - 45, gy + 4);
+    }
+
+    cCtx.fillStyle = '#38bdf8';
+    cCtx.font = 'bold 13px Roboto, sans-serif';
+    cCtx.fillText('ペース・インターバル推移 (ms)', margin.left, 20);
+
+    cCtx.strokeStyle = '#38bdf8';
+    cCtx.lineWidth = 2;
+    cCtx.beginPath();
+    for (let i = 0; i < points.length; i++) {
+      const px = mapX(points[i].time), py = mapY(points[i].interval);
+      if (i === 0) cCtx.moveTo(px, py); else cCtx.lineTo(px, py);
+    }
+    cCtx.stroke();
+
+    cCtx.fillStyle = '#ef4444';
+    for (const p of points) {
+      cCtx.beginPath(); cCtx.arc(mapX(p.time), mapY(p.interval), 4, 0, Math.PI * 2); cCtx.fill();
+    }
+  }
+
+  // ==========================================
+  // デバッグエディタ
+  // ==========================================
+  let isDraggingStep = null;
+  let dynamicMinDb = -80;
+  let dynamicMaxDb = -10;
+
+  verticalZoomInput.oninput = () => {
+    verticalZoomFactor = parseFloat(verticalZoomInput.value);
+    zoomLabel.textContent = `${verticalZoomFactor}x`;
+    renderDebugEditor();
   };
 
-  function drawChart(preds, hits) {
-    const width = canvas.width = canvas.clientWidth;
-    const height = canvas.height = canvas.clientHeight;
-    ctx.clearRect(0, 0, width, height);
+  openDebugModalBtn.onclick = () => {
+    if (rawSpectrogramMatrix.length === 0) {
+      alert("解析データがありません。");
+      return;
+    }
+    calculateDisplayDynamicRange();
+    debugModal.classList.add('active');
+    renderDebugEditor();
+  };
 
-    ctx.fillStyle = '#38bdf8';
-    for (let i = 0; i < preds.length; i++) {
-      if (preds[i] === 1) {
-        const x = (i / preds.length) * width;
-        ctx.fillRect(x, height - 60, 2, 40);
+  closeDebugModalBtn.onclick = () => {
+    debugModal.classList.remove('active');
+    refreshOutputs();
+    resultCard.style.display = "block";
+  };
+
+  // 表示範囲(1000Hz〜)のみからダイナミックレンジ（最小値・最大値）を動的に計算
+  function calculateDisplayDynamicRange() {
+    let startBin1000Hz = freqBinHzList.findIndex(f => f >= 1000);
+    if (startBin1000Hz === -1) startBin1000Hz = 0;
+
+    let min = 1000;
+    let max = -1000;
+
+    for (let f = 0; f < rawSpectrogramMatrix.length; f++) {
+      const bins = rawSpectrogramMatrix[f];
+      for (let b = startBin1000Hz; b < bins.length; b++) {
+        const val = bins[b];
+        if (val > -99) { // 無効値を考慮
+          if (val < min) min = val;
+          if (val > max) max = val;
+        }
       }
     }
 
-    ctx.fillStyle = '#ef4444';
-    for (const hitIdx of hits) {
-      const x = (hitIdx / preds.length) * width;
-      ctx.beginPath();
-      ctx.arc(x, 30, 4, 0, Math.PI * 2);
-      ctx.fill();
+    dynamicMinDb = min < max ? min : -80;
+    dynamicMaxDb = min < max ? max : -10;
+  }
+
+  function getRedWhiteGreenColor(valDb) {
+    const norm = Math.max(0, Math.min(1, (valDb - dynamicMinDb) / (dynamicMaxDb - dynamicMinDb)));
+
+    let r = 0, g = 0, b = 0;
+    
+    if (norm < 0.35) {
+      const t = norm / 0.35;
+      r = 235;
+      g = Math.floor(40 + 215 * t);
+      b = Math.floor(40 + 215 * t);
+    } else {
+      const t = (norm - 0.35) / 0.65;
+      r = Math.floor(255 * (1 - t * 0.95));
+      g = Math.floor(255 - t * 110);
+      b = Math.floor(255 * (1 - t * 0.9));
+    }
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function renderDebugEditor() {
+    const containerWidth = debugCanvasContainer.clientWidth;
+    const rowHeight = verticalZoomFactor;
+    const totalFrames = rawSpectrogramMatrix.length;
+    
+    const nextCanvasWidth = Math.max(300, containerWidth);
+    const nextCanvasHeight = Math.max(debugCanvasContainer.clientHeight, totalFrames * rowHeight);
+
+    if (debugCanvas.width !== nextCanvasWidth) {
+      debugCanvas.width = nextCanvasWidth;
+    }
+    if (debugCanvas.height !== nextCanvasHeight) {
+      debugCanvas.height = nextCanvasHeight;
+    }
+
+    debugCanvas.style.width = `${nextCanvasWidth}px`;
+    debugCanvas.style.height = `${nextCanvasHeight}px`;
+
+    const width = debugCanvas.width;
+    const height = debugCanvas.height;
+    debugCtx.clearRect(0, 0, width, height);
+
+    let startBin1000Hz = freqBinHzList.findIndex(f => f >= 1000);
+    if (startBin1000Hz === -1) startBin1000Hz = 0;
+    const activeBinsCount = freqBinHzList.length - startBin1000Hz;
+
+    const scrollTop = debugCanvasContainer.scrollTop;
+    const containerHeight = debugCanvasContainer.clientHeight;
+    const startFrame = Math.max(0, Math.floor((scrollTop - 50) / rowHeight));
+    const endFrame = Math.min(totalFrames, Math.ceil((scrollTop + containerHeight + 50) / rowHeight));
+
+    const stepX = 2;
+    for (let f = startFrame; f < endFrame; f++) {
+      const y = f * rowHeight;
+      const bins = rawSpectrogramMatrix[f];
+
+      for (let x = 0; x < width; x += stepX) {
+        const relBinIndex = Math.floor(Math.pow(x / width, 1.8) * activeBinsCount);
+        const actualBinIndex = Math.min(startBin1000Hz + relBinIndex, freqBinHzList.length - 1);
+        const val = bins[actualBinIndex] || -100;
+
+        debugCtx.fillStyle = getRedWhiteGreenColor(val);
+        debugCtx.fillRect(x, y, stepX, Math.max(1, rowHeight));
+      }
+    }
+
+    const intervalSec = 5;
+    const framesPerInterval = Math.round(intervalSec / frameStepSec);
+    const firstIntervalIdx = Math.ceil((startFrame * frameStepSec) / intervalSec);
+    const lastIntervalIdx = Math.floor((endFrame * frameStepSec) / intervalSec);
+
+    debugCtx.font = 'bold 11px Roboto, sans-serif';
+    debugCtx.textAlign = 'right';
+    debugCtx.textBaseline = 'middle';
+
+    for (let idx = firstIntervalIdx; idx <= lastIntervalIdx; idx++) {
+      const frameIdx = idx * framesPerInterval;
+      if (frameIdx < 0 || frameIdx >= totalFrames) continue;
+
+      const y = frameIdx * rowHeight;
+      const currentSec = currentStartSec + frameIdx * frameStepSec;
+      const min = Math.floor(currentSec / 60);
+      const sec = (currentSec % 60).toFixed(1);
+      const labelText = `${min.toString().padStart(2, '0')}:${sec.padStart(4, '0')}s`;
+
+      debugCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      debugCtx.lineWidth = 1;
+      debugCtx.beginPath();
+      debugCtx.moveTo(0, y);
+      debugCtx.lineTo(width, y);
+      debugCtx.stroke();
+
+      debugCtx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+      debugCtx.fillRect(width - 85, y - 9, 80, 18);
+
+      debugCtx.fillStyle = '#38bdf8';
+      debugCtx.fillText(labelText, width - 10, y);
+    }
+
+    // 画面中央左端の目印（横向き三角形 ▶）を描画
+    const centerY = scrollTop + containerHeight / 2;
+    debugCtx.fillStyle = '#ef4444';
+    debugCtx.strokeStyle = '#ffffff';
+    debugCtx.lineWidth = 1.5;
+    debugCtx.beginPath();
+    debugCtx.moveTo(0, centerY - 10);
+    debugCtx.lineTo(16, centerY);
+    debugCtx.lineTo(0, centerY + 10);
+    debugCtx.closePath();
+    debugCtx.fill();
+    debugCtx.stroke();
+
+    debugCtx.font = '18px "Material Icons"';
+    debugCtx.textAlign = 'center';
+    debugCtx.textBaseline = 'middle';
+
+    editableHitFrames.forEach((frameIdx) => {
+      if (frameIdx < startFrame - 10 || frameIdx > endFrame + 10) return;
+      const y = frameIdx * rowHeight;
+
+      debugCtx.strokeStyle = '#000000';
+      debugCtx.lineWidth = 2.5;
+      debugCtx.beginPath();
+      debugCtx.moveTo(40, y);
+      debugCtx.lineTo(width - 40, y);
+      debugCtx.stroke();
+
+      debugCtx.fillStyle = '#ffffff';
+      debugCtx.beginPath();
+      debugCtx.arc(20, y, 16, 0, Math.PI * 2);
+      debugCtx.fill();
+
+      debugCtx.fillStyle = '#ef4444';
+      debugCtx.fillText('delete', 20, y);
+
+      debugCtx.fillStyle = '#ffffff';
+      debugCtx.beginPath();
+      debugCtx.arc(width - 20, y, 16, 0, Math.PI * 2);
+      debugCtx.fill();
+
+      debugCtx.fillStyle = '#0284c7';
+      debugCtx.fillText('open_with', width - 20, y);
+    });
+  }
+
+  debugCanvasContainer.addEventListener('scroll', () => {
+    requestAnimationFrame(renderDebugEditor);
+  });
+
+  function getCanvasCoords(e) {
+    const containerRect = debugCanvasContainer.getBoundingClientRect();
+    const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+
+    return {
+      x: clientX - containerRect.left,
+      y: (clientY - containerRect.top) + debugCanvasContainer.scrollTop
+    };
+  }
+
+  function handlePointerDown(e) {
+    const { x, y } = getCanvasCoords(e);
+    const rowHeight = verticalZoomFactor;
+    const touchMargin = Math.max(20, rowHeight * 1.5);
+
+    if (x <= 50) {
+      const targetIdx = editableHitFrames.findIndex(f => Math.abs(f * rowHeight - y) < touchMargin);
+      if (targetIdx >= 0) {
+        editableHitFrames.splice(targetIdx, 1);
+        renderDebugEditor();
+        debugStatusText.textContent = `ステップを削除しました (残り: ${editableHitFrames.length}件)`;
+        if (e.cancelable) e.preventDefault();
+      }
+      return;
+    }
+
+    if (x >= debugCanvas.width - 60) {
+      const targetIdx = editableHitFrames.findIndex(f => Math.abs(f * rowHeight - y) < touchMargin);
+      if (targetIdx >= 0) {
+        isDraggingStep = targetIdx;
+        debugStatusText.textContent = `ステップ #${targetIdx + 1} をドラッグ移動中...`;
+        if (e.cancelable) e.preventDefault();
+      }
     }
   }
+
+  function handlePointerMove(e) {
+    if (isDraggingStep === null) return;
+
+    const { y } = getCanvasCoords(e);
+    const rowHeight = verticalZoomFactor;
+
+    const newFrame = Math.max(0, Math.min(rawSpectrogramMatrix.length - 1, Math.floor(y / rowHeight)));
+    editableHitFrames[isDraggingStep] = newFrame;
+    
+    requestAnimationFrame(renderDebugEditor);
+    if (e.cancelable) e.preventDefault();
+  }
+
+  function handlePointerUp() {
+    if (isDraggingStep !== null) {
+      isDraggingStep = null;
+      editableHitFrames.sort((a, b) => a - b);
+      renderDebugEditor();
+      debugStatusText.textContent = "ステップ位置を移動・確定しました";
+    }
+  }
+
+  debugCanvas.addEventListener('mousedown', handlePointerDown);
+  window.addEventListener('mousemove', handlePointerMove);
+  window.addEventListener('mouseup', handlePointerUp);
+
+  debugCanvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+  window.addEventListener('touchmove', handlePointerMove, { passive: false });
+  window.addEventListener('touchend', handlePointerUp);
+  window.addEventListener('touchcancel', handlePointerUp);
+
+  addStepBtn.onclick = () => {
+    const rowHeight = verticalZoomFactor;
+    const centerFrame = Math.floor((debugCanvasContainer.scrollTop + debugCanvasContainer.clientHeight / 2) / rowHeight);
+    const targetFrame = Math.max(0, Math.min(rawSpectrogramMatrix.length - 1, centerFrame));
+
+    editableHitFrames.push(targetFrame);
+    editableHitFrames.sort((a, b) => a - b);
+    renderDebugEditor();
+    debugStatusText.textContent = `画面中央にステップを追加しました (合計: ${editableHitFrames.length}件)`;
+  };
+
+  exportLearningCsvBtn.onclick = () => {
+    refreshOutputs();
+    downloadFile(generatedCsvText, `learning_matrix_${Date.now()}.csv`);
+    debugModal.classList.remove('active');
+    setStatus("学習用CSVを出力しました", "ready");
+  };
 </script>
 
 </body>
