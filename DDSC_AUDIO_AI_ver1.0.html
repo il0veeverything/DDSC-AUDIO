@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDSC AUDIO</title>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --md-sys-color-primary: #0061a4;
+      --md-sys-color-on-primary: #ffffff;
+      --md-sys-color-primary-container: #d1e4ff;
+      --md-sys-color-on-primary-container: #001d36;
+      --md-sys-color-surface: #fdfcff;
+      --md-sys-color-surface-variant: #e0e2ec;
+      --md-sys-color-on-surface: #1a1c1e;
+      --md-sys-color-on-surface-variant: #43474e;
+      --md-sys-color-outline: #73777f;
+      --md-sys-color-bg: #f8f9fe;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--md-sys-color-bg);
+      color: var(--md-sys-color-on-surface);
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+      letter-spacing: -0.5px;
+    }
+    .model-badge {
+      font-size: 0.75rem;
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .card {
+      background: var(--md-sys-color-surface);
+      border: 1px solid var(--md-sys-color-surface-variant);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-bottom: 16px;
+    }
+    .status-icon { font-size: 1.1rem; }
+    .status-bar.ready .status-icon { color: #10b981; }
+    .status-bar.error .status-icon { color: #ef4444; }
+
+    .control-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed var(--md-sys-color-outline);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      background: var(--md-sys-color-bg);
+      transition: border-color 0.2s;
+    }
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .file-input-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: var(--md-sys-color-on-surface-variant);
+      font-weight: 500;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .select-box, .text-input {
+      flex: 1;
+      padding: 12px;
+      font-size: 1rem;
+      border: 1px solid var(--md-sys-color-outline);
+      border-radius: 8px;
+      background: var(--md-sys-color-surface);
+      color: var(--md-sys-color-on-surface);
+      outline: none;
+    }
+    .text-input { width: 80px; flex: initial; }
+
+    .btn {
+      width: 100%;
+      height: 48px;
+      border-radius: 24px;
+      border: none;
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      font-size: 1rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:disabled {
+      background-color: var(--md-sys-color-surface-variant);
+      color: var(--md-sys-color-outline);
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--md-sys-color-primary);
+      border: 1px solid var(--md-sys-color-outline);
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--md-sys-color-surface-variant);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 12px;
+      display: none;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--md-sys-color-primary);
+      transition: width 0.1s;
+    }
+
+    .metric-hero {
+      text-align: center;
+      padding: 12px 0;
+    }
+    .metric-hero .val {
+      font-size: 3.5rem;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+      line-height: 1;
+    }
+    .metric-hero .unit {
+      font-size: 0.875rem;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-top: 4px;
+    }
+
+    .metrics-sub {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+      border-top: 1px solid var(--md-sys-color-surface-variant);
+      padding-top: 16px;
+    }
+    .sub-box {
+      text-align: center;
+    }
+    .sub-box .val {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .sub-box .lbl {
+      font-size: 0.75rem;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    canvas {
+      width: 100%;
+      height: 140px;
+      background-color: #0f172a;
+      border-radius: 12px;
+      margin-top: 16px;
+    }
+
+    .log-details {
+      margin-top: 16px;
+    }
+    summary {
+      font-size: 0.85rem;
+      color: var(--md-sys-color-outline);
+      cursor: pointer;
+    }
+    .debug-box {
+      background: #111827;
+      color: #38bdf8;
+      font-family: monospace;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      max-height: 150px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>DDSC AUDIO</h1>
+  <span class="model-badge">vampire_ver2</span>
+</header>
+
+<div class="card">
+  <div id="statusBar" class="status-bar">
+    <span class="material-icons status-icon">hourglass_empty</span>
+    <span id="statusText">モデル読み込み中...</span>
+  </div>
+
+  <div class="control-grid">
+    <div class="file-input-wrapper">
+      <input type="file" id="audioFile" accept="audio/*" disabled>
+      <div class="file-input-label">
+        <span class="material-icons">audio_file</span>
+        <span id="fileName">音声ファイルを選択</span>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <select id="paceSelect" class="select-box">
+        <option value="100">ペース: 100</option>
+        <option value="110">ペース: 110</option>
+        <option value="120" selected>ペース: 120</option>
+        <option value="130">ペース: 130</option>
+        <option value="140">ペース: 140</option>
+        <option value="150">ペース: 150</option>
+        <option value="custom">自由入力</option>
+      </select>
+      <input type="number" id="paceInput" class="text-input" value="120" min="50" max="300" style="display:none;">
+    </div>
+
+    <button id="analyzeBtn" class="btn" disabled>
+      <span class="material-icons">analytics</span>
+      解析開始
+    </button>
+  </div>
+
+  <div id="progressBar" class="progress-bar">
+    <div id="progressFill" class="progress-fill"></div>
+  </div>
+</div>
+
+<div class="card" id="resultCard" style="display:none;">
+  <div class="metric-hero">
+    <div class="val" id="totalCount">0</div>
+    <div class="unit">カウント (ステップ ÷ 2)</div>
+  </div>
+
+  <div class="metrics-sub">
+    <div class="sub-box">
+      <div class="val" id="positiveFrames">0</div>
+      <div class="lbl">検出ステップ</div>
+    </div>
+    <div class="sub-box">
+      <div class="val" id="avgIntervalMs">0.0</div>
+      <div class="lbl">平均間隔 (ms)</div>
+    </div>
+  </div>
+
+  <canvas id="chart"></canvas>
+
+  <button id="downloadCsvBtn" class="btn btn-secondary" style="margin-top: 16px;">
+    <span class="material-icons">download</span>
+    CSV出力
+  </button>
+
+  <details class="log-details">
+    <summary>ログ表示</summary>
+    <div id="debugLog" class="debug-box"></div>
+  </details>
+</div>
+
+<script>
+  let session = null;
+  let inputName = '';
+  let outputNames = [];
+  let generatedCsvText = "";
+
+  const statusBar = document.getElementById('statusBar');
+  const statusText = document.getElementById('statusText');
+  const fileInput = document.getElementById('audioFile');
+  const fileName = document.getElementById('fileName');
+  const paceSelect = document.getElementById('paceSelect');
+  const paceInput = document.getElementById('paceInput');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+  const resultCard = document.getElementById('resultCard');
+  const progressBar = document.getElementById('progressBar');
+  const progressFill = document.getElementById('progressFill');
+  const debugLog = document.getElementById('debugLog');
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+
+  function calculateCooldownMs(pace) {
+    const p = parseFloat(pace);
+    if (!p || p <= 0) return 0;
+    return 15000 / 1.3 / p;
+  }
+
+  function setStatus(text, type = '') {
+    statusText.textContent = text;
+    statusBar.className = `status-bar ${type}`;
+    const icon = statusBar.querySelector('.status-icon');
+    if (type === 'ready') icon.textContent = 'check_circle';
+    else if (type === 'error') icon.textContent = 'error';
+    else icon.textContent = 'hourglass_empty';
+  }
+
+  paceSelect.onchange = () => {
+    if (paceSelect.value === 'custom') {
+      paceInput.style.display = 'block';
+    } else {
+      paceInput.style.display = 'none';
+      paceInput.value = paceSelect.value;
+    }
+  };
+
+  async function loadModel() {
+    try {
+      session = await ort.InferenceSession.create('./footstep_lgbm.onnx');
+      inputName = session.inputNames[0];
+      outputNames = session.outputNames;
+
+      setStatus("準備完了", "ready");
+      fileInput.disabled = false;
+    } catch (e) {
+      console.error(e);
+      setStatus("モデル読込失敗", "error");
+    }
+  }
+  loadModel();
+
+  fileInput.onchange = () => {
+    if (fileInput.files[0]) {
+      fileName.textContent = fileInput.files[0].name;
+      analyzeBtn.disabled = false;
+    }
+  };
+
+  async function readFileWithProgress(file, onProgress) {
+    const totalSize = file.size;
+    const chunkSize = 1024 * 1024;
+    let loaded = 0;
+    const chunks = [];
+
+    for (let start = 0; start < totalSize; start += chunkSize) {
+      const end = Math.min(start + chunkSize, totalSize);
+      const blob = file.slice(start, end);
+      const buf = await blob.arrayBuffer();
+      chunks.push(new Uint8Array(buf));
+      loaded += buf.byteLength;
+      onProgress(Math.round((loaded / totalSize) * 100));
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    const merged = new Uint8Array(totalSize);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return merged.buffer;
+  }
+
+  analyzeBtn.onclick = async () => {
+    const file = fileInput.files[0];
+    if (!file || !session) return;
+
+    const currentPace = paceSelect.value === 'custom' ? parseFloat(paceInput.value) : parseFloat(paceSelect.value);
+    const minDistanceMs = calculateCooldownMs(currentPace);
+
+    analyzeBtn.disabled = true;
+    fileInput.disabled = true;
+    paceSelect.disabled = true;
+    paceInput.disabled = true;
+    downloadCsvBtn.disabled = true;
+    resultCard.style.display = "none";
+    progressBar.style.display = "block";
+    progressFill.style.width = "0%";
+    debugLog.textContent = "";
+    
+    setStatus("音声読み込み中...");
+
+    try {
+      const arrayBuffer = await readFileWithProgress(file, (percent) => {
+        progressFill.style.width = `${percent}%`;
+      });
+
+      setStatus("音声デコード中...");
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+      const rawPcm = audioBuffer.getChannelData(0);
+      const sampleRateCache = audioBuffer.sampleRate;
+      
+      const fftSize = 1024;
+      const frameStepSec = 0.01;
+      const hopSize = Math.round(sampleRateCache * frameStepSec);
+      const binHz = sampleRateCache / fftSize;
+
+      const maxFreqLimit = 10000;
+      const maxBinIdx = Math.floor(maxFreqLimit / binHz);
+      const numFreqBins = maxBinIdx + 1;
+
+      const freqBinHzList = [];
+      for (let k = 0; k <= maxBinIdx; k++) {
+        freqBinHzList.push(Math.round(k * binHz));
+      }
+
+      const totalFrames = Math.floor((rawPcm.length - fftSize) / hopSize);
+      if (totalFrames <= 0) throw new Error("音声が短すぎます");
+
+      const windowFunc = new Float32Array(fftSize);
+      for (let i = 0; i < fftSize; i++) {
+        windowFunc[i] = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (fftSize - 1));
+      }
+
+      setStatus("特徴量抽出中...");
+      
+      const spectrogramMatrix = [];
+      const totalSteps = Math.floor((rawPcm.length - fftSize) / hopSize);
+
+      for (let i = 0, frameCount = 0; i <= rawPcm.length - fftSize; i += hopSize, frameCount++) {
+        const bins = new Float32Array(numFreqBins);
+        for (let k = 0; k <= maxBinIdx; k++) {
+          let re = 0, im = 0;
+          const omega = (2 * Math.PI * k) / fftSize;
+          for (let n = 0; n < fftSize; n++) {
+            const sample = rawPcm[i + n] * windowFunc[n];
+            re += sample * Math.cos(omega * n);
+            im -= sample * Math.sin(omega * n);
+          }
+          const mag = Math.sqrt(re * re + im * im) / (fftSize / 2);
+          bins[k] = mag > 0.00001 ? 20 * Math.log10(mag) : -100;
+        }
+        spectrogramMatrix.push(bins);
+
+        if (frameCount % 200 === 0 || frameCount === totalSteps - 1) {
+          progressFill.style.width = `${Math.round((frameCount / totalSteps) * 100)}%`;
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+
+      const highFreqStartBin = freqBinHzList.findIndex(f => f >= 1500);
+      const startBin = highFreqStartBin >= 0 ? highFreqStartBin : 0;
+
+      const powerSeries = spectrogramMatrix.map(bins => {
+        let sum = 0, count = 0;
+        for (let k = startBin; k < bins.length; k++) {
+          sum += bins[k];
+          count++;
+        }
+        return count > 0 ? sum / count : -100;
+      });
+
+      const deltaDbSeries = [];
+      const releaseThreshSeries = [];
+      let currentThresh = 0.0;
+
+      for (let i = 0; i < powerSeries.length; i++) {
+        const lookback = Math.max(0, i - 3);
+        let minBase = powerSeries[i];
+        for (let j = lookback; j < i; j++) {
+          if (powerSeries[j] < minBase) minBase = powerSeries[j];
+        }
+
+        const delta = Math.max(0, powerSeries[i] - minBase);
+        deltaDbSeries.push(delta);
+
+        if (delta > currentThresh) {
+          currentThresh = delta;
+        } else {
+          currentThresh = Math.max(0.0, currentThresh * 0.85);
+        }
+        releaseThreshSeries.push(currentThresh);
+      }
+
+      setStatus("推論実行中...");
+      
+      const rawPredictions = [];
+      const isCountList = [];
+      const hitIndices = [];
+
+      const minDistanceFrames = Math.floor((minDistanceMs / 1000) / frameStepSec);
+      let lastHitFrame = -minDistanceFrames;
+
+      for (let f = 0; f < spectrogramMatrix.length; f++) {
+        const row219 = new Float32Array(219);
+        row219.set(spectrogramMatrix[f], 0);
+        row219[214] = deltaDbSeries[f];
+        row219[215] = releaseThreshSeries[f];
+        row219[216] = 100.0; 
+        row219[217] = 20.0;  
+        row219[218] = 0.0;   
+
+        const tensorInput = new ort.Tensor('float32', row219, [1, 219]);
+        const feeds = { [inputName]: tensorInput };
+
+        const results = await session.run(feeds, [outputNames[0]]);
+        const labelTensor = results[outputNames[0]];
+        const rawVal = Number(labelTensor.data[0]);
+        const isHit = (rawVal === 1);
+
+        rawPredictions.push(isHit ? 1 : 0);
+
+        if (isHit && (f - lastHitFrame) >= minDistanceFrames) {
+          isCountList.push(1);
+          lastHitFrame = f;
+          hitIndices.push(f);
+        } else {
+          isCountList.push(0);
+        }
+
+        if (f % 100 === 0 || f === spectrogramMatrix.length - 1) {
+          progressFill.style.width = `${Math.round(((f + 1) / spectrogramMatrix.length) * 100)}%`;
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+
+      const intervalMsSeries = new Array(spectrogramMatrix.length).fill("0.0");
+      const intervalValuesForAvg = [];
+
+      for (let k = 1; k < hitIndices.length; k++) {
+        const currFrame = hitIndices[k];
+        const prevFrame = hitIndices[k - 1];
+        const diffMs = ((currFrame - prevFrame) * frameStepSec * 1000).toFixed(1);
+        
+        intervalMsSeries[currFrame] = diffMs;
+        intervalValuesForAvg.push(parseFloat(diffMs));
+      }
+
+      const csvHeader = ["Time_Sec", ...freqBinHzList.map(h => `${h}Hz`), "Delta_dB", "Release_Threshold", "Is_Count", "Interval_ms"];
+      const csvRows = [csvHeader.join(",")];
+
+      for (let f = 0; f < spectrogramMatrix.length; f++) {
+        csvRows.push([
+          (f * frameStepSec).toFixed(3),
+          ...Array.from(spectrogramMatrix[f]).map(v => v.toFixed(2)),
+          deltaDbSeries[f].toFixed(2),
+          releaseThreshSeries[f].toFixed(2),
+          isCountList[f],
+          intervalMsSeries[f]
+        ].join(","));
+      }
+
+      generatedCsvText = csvRows.join("\n");
+      downloadCsvBtn.disabled = false;
+
+      const rawHitCount = hitIndices.length;
+      const halvedCount = rawHitCount / 2;
+
+      const avgInterval = intervalValuesForAvg.length > 0
+        ? (intervalValuesForAvg.reduce((a, b) => a + b, 0) / intervalValuesForAvg.length).toFixed(1)
+        : "0.0";
+
+      debugLog.textContent = `Model: vampire_ver2\nPace: ${currentPace}\nCooldown: ${minDistanceMs.toFixed(1)}ms\nSteps: ${rawHitCount}\nCount: ${halvedCount}\nFrames: ${spectrogramMatrix.length}`;
+
+      document.getElementById('totalCount').textContent = halvedCount;
+      document.getElementById('avgIntervalMs').textContent = avgInterval;
+      document.getElementById('positiveFrames').textContent = rawHitCount;
+
+      setStatus("解析完了", "ready");
+      progressBar.style.display = "none";
+      resultCard.style.display = "block";
+
+      drawChart(rawPredictions, hitIndices);
+
+    } catch (err) {
+      console.error(err);
+      setStatus(`エラー: ${err.message}`, "error");
+      progressBar.style.display = "none";
+    } finally {
+      analyzeBtn.disabled = false;
+      fileInput.disabled = false;
+      paceSelect.disabled = false;
+      paceInput.disabled = false;
+    }
+  };
+
+  downloadCsvBtn.onclick = () => {
+    if (!generatedCsvText) return;
+    const blob = new Blob([generatedCsvText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ddsc_vampire2_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  function drawChart(preds, hits) {
+    const width = canvas.width = canvas.clientWidth;
+    const height = canvas.height = canvas.clientHeight;
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.fillStyle = '#38bdf8';
+    for (let i = 0; i < preds.length; i++) {
+      if (preds[i] === 1) {
+        const x = (i / preds.length) * width;
+        ctx.fillRect(x, height - 60, 2, 40);
+      }
+    }
+
+    ctx.fillStyle = '#ef4444';
+    for (const hitIdx of hits) {
+      const x = (hitIdx / preds.length) * width;
+      ctx.beginPath();
+      ctx.arc(x, 30, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+</script>
+
+</body>
+</html>
