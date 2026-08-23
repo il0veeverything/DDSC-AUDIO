@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
+  <!-- 背景：角丸を大きめにして枠いっぱいに広げる -->
+  <rect width="64" height="64" rx="12" fill="#0B0F19" />
+
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <!-- ロープ / 波形 1（シアン）：振幅を大きく、線幅も8pxに極太化 -->
+    <path d="M 6 52 C 18 52, 20 12, 32 32 C 44 52, 46 12, 58 12" 
+          fill="none" 
+          stroke="#00F0FF" 
+          stroke-width="8" />
+
+    <!-- ロープ / 波形 2（マゼンタ）：上下逆のダイナミックな交差 -->
+    <path d="M 6 12 C 18 12, 20 52, 32 32 C 44 12, 46 52, 58 52" 
+          fill="none" 
+          stroke="#FF007A" 
+          stroke-width="8" 
+          opacity="0.9" />
+
+    <!-- 中央の交差ノード：視覚的アクセントとして少し拡大 -->
+    <circle cx="32" cy="32" r="5" fill="#FFFFFF" />
+  </g>
+</svg>
