@@ -43,13 +43,23 @@
       color: var(--md-sys-color-primary);
       letter-spacing: -0.5px;
     }
-    .model-badge {
-      font-size: 0.75rem;
+    
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .model-select {
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--md-sys-color-outline);
       background: var(--md-sys-color-primary-container);
       color: var(--md-sys-color-on-primary-container);
-      padding: 4px 10px;
-      border-radius: 12px;
       font-weight: 500;
+      outline: none;
+      cursor: pointer;
     }
 
     .card {
@@ -425,13 +435,17 @@
 
 <header>
   <h1>DDSC AUDIO</h1>
-  <span class="model-badge">vampire_ver2</span>
+  <div class="header-controls">
+    <select id="modelSelector" class="model-select">
+      <option value="">モデル検索中...</option>
+    </select>
+  </div>
 </header>
 
 <div class="card">
   <div id="statusBar" class="status-bar">
     <span class="material-icons status-icon">hourglass_empty</span>
-    <span id="statusText">モデル読み込み中...</span>
+    <span id="statusText">モデル一覧を検索中...</span>
   </div>
 
   <div class="control-grid">
@@ -618,6 +632,7 @@
   const progressBar = document.getElementById('progressBar');
   const progressFill = document.getElementById('progressFill');
   const canvas = document.getElementById('chart');
+  const modelSelector = document.getElementById('modelSelector');
 
   const rangeBox = document.getElementById('rangeBox');
   const startSlider = document.getElementById('startSlider');
@@ -670,9 +685,65 @@
     }
   };
 
-  async function loadModel() {
+  // Models フォルダ内の .onnx ファイル一覧を取得
+  async function fetchModelList() {
     try {
-      session = await ort.InferenceSession.create('./footstep_lgbm.onnx');
+      const response = await fetch('./Models/');
+      if (!response.ok) throw new Error("Models フォルダへのアクセス失敗");
+      const text = await response.text();
+
+      // ディレクトリリスティングのHTMLから .onnx ファイル名を抽出
+      const regex = /href="([^"]+\.onnx)"/gi;
+      let match;
+      const modelFiles = [];
+
+      while ((match = regex.exec(text)) !== null) {
+        let filename = decodeURIComponent(match[1]).split('/').pop();
+        if (!modelFiles.includes(filename)) {
+          modelFiles.push(filename);
+        }
+      }
+
+      if (modelFiles.length === 0) {
+        throw new Error("Models フォルダ内に .onnx ファイルが見つかりません。");
+      }
+
+      // 自然順ソート (バージョン数値の大小で降順にソート)
+      modelFiles.sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }));
+
+      modelSelector.innerHTML = '';
+      modelFiles.forEach((file, index) => {
+        const option = document.createElement('option');
+        option.value = `./Models/${file}`;
+        // .onnx 拡張子を除去し、_ を半角スペースに置換
+        const displayName = file.replace(/\.onnx$/i, '').replace(/_/g, ' ');
+        option.textContent = displayName;
+        
+        // ソート後の先頭 (最新モデル) をデフォルト選択
+        if (index === 0) option.selected = true;
+        modelSelector.appendChild(option);
+      });
+
+      // ドロップダウンで選択されている最新モデルを読み込む
+      await loadModel(modelSelector.value);
+
+    } catch (e) {
+      console.warn("Models フォルダ自動取得失敗:", e);
+      // フォールバック: ディレクトリ一覧取得に失敗した場合は標準の選択肢を配置
+      modelSelector.innerHTML = `
+        <option value="./Models/vampire_ver_1.2.onnx">vampire ver 1.2</option>
+      `;
+      await loadModel(modelSelector.value);
+    }
+  }
+
+  async function loadModel(modelPath) {
+    try {
+      setStatus("モデル読み込み中...");
+      if (session) {
+        try { await session.release(); } catch(e) {}
+      }
+      session = await ort.InferenceSession.create(modelPath);
       inputName = session.inputNames[0];
       outputNames = session.outputNames;
 
@@ -683,7 +754,12 @@
       setStatus("モデル読込失敗", "error");
     }
   }
-  loadModel();
+
+  modelSelector.onchange = () => {
+    loadModel(modelSelector.value);
+  };
+
+  fetchModelList();
 
   fileInput.onchange = async () => {
     if (!fileInput.files[0]) return;
@@ -1352,7 +1428,6 @@
     resultCard.style.display = "block";
   };
 
-  // 表示範囲(1000Hz〜)のみからダイナミックレンジ（最小値・最大値）を動的に計算
   function calculateDisplayDynamicRange() {
     let startBin1000Hz = freqBinHzList.findIndex(f => f >= 1000);
     if (startBin1000Hz === -1) startBin1000Hz = 0;
@@ -1364,7 +1439,7 @@
       const bins = rawSpectrogramMatrix[f];
       for (let b = startBin1000Hz; b < bins.length; b++) {
         const val = bins[b];
-        if (val > -99) { // 無効値を考慮
+        if (val > -99) {
           if (val < min) min = val;
           if (val > max) max = val;
         }
@@ -1389,7 +1464,7 @@
       const t = (norm - 0.35) / 0.65;
       r = Math.floor(255 * (1 - t * 0.95));
       g = Math.floor(255 - t * 110);
-      b = Math.floor(255 * (1 - t * 0.9));
+      b = Math.floor(255 - t * 0.9);
     }
     return `rgb(${r},${g},${b})`;
   }
@@ -1473,7 +1548,6 @@
       debugCtx.fillText(labelText, width - 10, y);
     }
 
-    // 画面中央左端の目印（横向き三角形 ▶）を描画
     const centerY = scrollTop + containerHeight / 2;
     debugCtx.fillStyle = '#ef4444';
     debugCtx.strokeStyle = '#ffffff';
