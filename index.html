@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DDSC AUDIO - Debugger</title>
+  <title>DDSC AUDIO</title>
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -685,53 +685,52 @@
     }
   };
 
-  // Models フォルダ内の .onnx ファイル一覧を取得
+  // Models/models.json から .onnx ファイル一覧を取得
+  // GitHub Pages ではフォルダのディレクトリ一覧(./Models/)を取得できないため、
+  // Models/models.json を正規のモデル一覧として使用する。
   async function fetchModelList() {
     try {
-      const response = await fetch('./Models/');
-      if (!response.ok) throw new Error("Models フォルダへのアクセス失敗");
-      const text = await response.text();
+      const manifestUrl = `./Models/models.json?v=${Date.now()}`;
+      const response = await fetch(manifestUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Models/models.json の取得失敗 (${response.status})`);
 
-      // ディレクトリリスティングのHTMLから .onnx ファイル名を抽出
-      const regex = /href="([^"]+\.onnx)"/gi;
-      let match;
-      const modelFiles = [];
+      const manifest = await response.json();
+      const modelFiles = Array.isArray(manifest)
+        ? manifest
+        : (Array.isArray(manifest.models) ? manifest.models : []);
 
-      while ((match = regex.exec(text)) !== null) {
-        let filename = decodeURIComponent(match[1]).split('/').pop();
-        if (!modelFiles.includes(filename)) {
-          modelFiles.push(filename);
-        }
+      const validModelFiles = modelFiles
+        .filter(file => typeof file === 'string' && /\.onnx$/i.test(file))
+        .map(file => file.split('/').pop())
+        .filter((file, index, arr) => arr.indexOf(file) === index);
+
+      if (validModelFiles.length === 0) {
+        throw new Error('Models/models.json に .onnx ファイルがありません。');
       }
 
-      if (modelFiles.length === 0) {
-        throw new Error("Models フォルダ内に .onnx ファイルが見つかりません。");
-      }
-
-      // 自然順ソート (バージョン数値の大小で降順にソート)
-      modelFiles.sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }));
+      // 自然順ソート（バージョン番号を含むファイル名に対応）
+      validModelFiles.sort((a, b) =>
+        b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' })
+      );
 
       modelSelector.innerHTML = '';
-      modelFiles.forEach((file, index) => {
+      validModelFiles.forEach((file, index) => {
         const option = document.createElement('option');
-        option.value = `./Models/${file}`;
-        // .onnx 拡張子を除去し、_ を半角スペースに置換
+        option.value = `./Models/${encodeURIComponent(file)}`;
         const displayName = file.replace(/\.onnx$/i, '').replace(/_/g, ' ');
         option.textContent = displayName;
-        
-        // ソート後の先頭 (最新モデル) をデフォルト選択
         if (index === 0) option.selected = true;
         modelSelector.appendChild(option);
       });
 
-      // ドロップダウンで選択されている最新モデルを読み込む
+      // 一覧の先頭＝最新モデルを自動ロード
       await loadModel(modelSelector.value);
 
     } catch (e) {
-      console.warn("Models フォルダ自動取得失敗:", e);
-      // フォールバック: ディレクトリ一覧取得に失敗した場合は標準の選択肢を配置
+      console.warn('Models 一覧自動取得失敗:', e);
+      // GitHub Pages で一覧取得に失敗した場合でも、既知の最新モデルを使用する。
       modelSelector.innerHTML = `
-        <option value="./Models/vampire_ver_1.2.onnx">vampire ver 1.2</option>
+        <option value="./Models/vampire_ver_1.3.onnx">vampire ver 1.3</option>
       `;
       await loadModel(modelSelector.value);
     }
