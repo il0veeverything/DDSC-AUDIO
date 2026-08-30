@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DDSC AUDIO</title>
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <title>DDSC AUDIO - Debugger & Analyzer</title>
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -51,16 +50,13 @@
       gap: 8px;
     }
 
-    .model-select {
-      font-size: 0.8rem;
-      padding: 4px 8px;
-      border-radius: 12px;
-      border: 1px solid var(--md-sys-color-outline);
+    .model-badge {
+      font-size: 0.75rem;
       background: var(--md-sys-color-primary-container);
       color: var(--md-sys-color-on-primary-container);
+      padding: 4px 10px;
+      border-radius: 12px;
       font-weight: 500;
-      outline: none;
-      cursor: pointer;
     }
 
     .card {
@@ -210,6 +206,13 @@
       grid-template-columns: 1fr 1fr auto;
       gap: 8px;
       align-items: flex-end;
+    }
+
+    .thresh-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
     }
 
     .input-field {
@@ -406,6 +409,9 @@
       align-items: center;
       font-size: 0.8rem;
     }
+    .step-edit-panel-disabled { opacity: 0.45; filter: grayscale(0.7); }
+    .interval-detail { display:block; font-size:0.68rem; line-height:1.45; color:var(--md-sys-color-on-surface-variant); margin-top:2px; }
+    .model-file-input { display:none; }
     .debug-canvas-container {
       position: relative;
       flex: 1;
@@ -430,6 +436,102 @@
       align-items: center;
       flex-wrap: wrap;
     }
+
+    /* ペース分析モーダル スタイル */
+    .pace-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .pace-modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .pace-modal-card {
+      background: #18181b;
+      color: #f4f4f5;
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .pace-modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #f4f4f5;
+    }
+    .pace-modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .pace-modal-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .pace-modal-field label {
+      font-size: 0.8rem;
+      color: #a1a1aa;
+    }
+    .pace-modal-field input[type="text"],
+    .pace-modal-field input[type="number"] {
+      background: #27272a;
+      border: 1px solid #3f3f46;
+      color: #f4f4f5;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .pace-modal-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+    .pace-modal-toggle span {
+      font-size: 0.85rem;
+      color: #a1a1aa;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-toggle {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #3f3f46;
+      transition: .2s;
+      border-radius: 24px;
+    }
+    .slider-toggle:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider-toggle { background-color: #007aff; }
+    input:checked + .slider-toggle:before { transform: translateX(20px); }
+    .pace-modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -437,16 +539,16 @@
 <header>
   <h1>DDSC AUDIO</h1>
   <div class="header-controls">
-    <select id="modelSelector" class="model-select">
-      <option value="">モデル検索中...</option>
-    </select>
+    <span class="model-badge" id="modelBadge">モデル確認中...</span>
+    <button class="btn btn-secondary btn-small" id="changeModelBtn" style="width:auto;">モデル変更</button>
+    <input class="model-file-input" type="file" id="modelFileInput" accept=".onnx">
   </div>
 </header>
 
 <div class="card">
   <div id="statusBar" class="status-bar">
     <span class="material-icons status-icon">hourglass_empty</span>
-    <span id="statusText">モデル一覧を検索中...</span>
+    <span id="statusText">モデル読み込み中...</span>
   </div>
 
   <div class="control-grid">
@@ -494,19 +596,21 @@
         <span>計測長: <strong id="durationLabel">0.00</strong>s</span>
         <span>終了: <strong id="endTimeLabel">0.00</strong>s</span>
       </div>
-    </div>
 
-    <div class="input-row" id="paceRow" style="display:none;">
-      <select id="paceSelect" class="select-box">
-        <option value="100">ペース: 100</option>
-        <option value="110">ペース: 110</option>
-        <option value="120" selected>ペース: 120</option>
-        <option value="130">ペース: 130</option>
-        <option value="140">ペース: 140</option>
-        <option value="150">ペース: 150</option>
-        <option value="custom">自由入力</option>
-      </select>
-      <input type="number" id="paceInput" class="text-input" value="120" min="50" max="300" style="display:none;">
+      <div class="thresh-panel">
+        <div class="input-field">
+          <label for="highThresh">ON 閾値 (High Prob)</label>
+          <input type="number" id="highThresh" class="text-input" value="0.65" min="0.1" max="0.99" step="0.05">
+        </div>
+        <div class="input-field">
+          <label for="lowThresh">OFF 閾値 (Low Prob)</label>
+          <input type="number" id="lowThresh" class="text-input" value="0.35" min="0.01" max="0.9" step="0.05">
+        </div>
+        <div class="input-field">
+          <label for="cooldownMs">クールダウン (ms)</label>
+          <input type="number" id="cooldownMs" class="text-input" value="60" min="0" step="5">
+        </div>
+      </div>
     </div>
 
     <button id="analyzeBtn" class="btn" disabled>
@@ -522,8 +626,8 @@
 
 <div class="card" id="resultCard" style="display:none;">
   <div class="metric-hero">
-    <div class="val" id="countStepDisplay">0 (0)</div>
-    <div class="unit">カウント (ステップ)</div>
+    <div class="val" id="countStepDisplay">0</div>
+    <div class="unit">カウント</div>
   </div>
 
   <div class="metrics-sub">
@@ -534,6 +638,7 @@
     <div class="sub-box">
       <div class="val" id="avgIntervalMs">0.0</div>
       <div class="lbl">平均間隔 (ms)</div>
+      <span class="interval-detail" id="oddEvenIntervalDetail">奇数: -　偶数: -</span>
     </div>
   </div>
 
@@ -571,14 +676,22 @@
       <div class="debug-toolbar">
         <label for="verticalZoom">縦拡大:</label>
         <input type="range" id="verticalZoom" min="1" max="15" value="7.5" step="0.5" style="width: 80px;">
-        <span id="zoomLabel">7.5x</span>
+        <span id="zoomLabel">50%</span>
         <button class="btn btn-secondary btn-small" id="addStepBtn">＋ ステップを追加</button>
       </div>
     </div>
 
     <div style="font-size: 0.8rem; color: #a1a1aa;">
-      * 表示領域: 1000Hz〜 / 赤:低音量 → 白:中音量 → 緑:高音量<br>
-      * 左端（<span class="material-icons" style="font-size:12px; color:#ef4444;">delete</span>）: タップ削除 / 中央▶: 目印 / 右端（<span class="material-icons" style="font-size:12px; color:#0284c7;">open_with</span>）: ドラッグ移動
+      ステップを選択して範囲を変更できます。右端で移動、左端で削除できます。
+    </div>
+
+    <div class="debug-toolbar step-edit-panel-disabled" id="stepEditPanel" style="display:flex; background:#1f2937; border-radius:10px; padding:8px 12px; flex-wrap: wrap;">
+      <span style="color:#22d3ee; font-weight:700;" id="stepSelectionStatus">非選択中</span>
+      <span id="selectedStepInfo" style="color:#22d3ee; font-weight:700;">ステップ #<span id="selectedStepNum">-</span>（基準フレーム <span id="selectedStepFrame">-</span>）</span>
+      <label for="stepRangeSlider" style="margin-left:8px;">選択範囲:</label>
+      <input type="range" id="stepRangeSlider" min="2" max="6" value="3" step="1" style="width:110px;">
+      <span id="stepRangeLabel" style="font-weight:700; color:#22d3ee;">3</span>
+      <button class="btn btn-secondary btn-small" id="deselectStepBtn" style="margin-left:auto;">選択解除</button>
     </div>
 
     <div class="debug-canvas-container" id="debugCanvasContainer">
@@ -599,32 +712,80 @@
   </div>
 </div>
 
+<!-- ペース分析モーダル UI -->
+<div class="pace-modal-overlay" id="paceModal">
+  <div class="pace-modal-card">
+    <div class="pace-modal-title">ペース分析グラフ出力</div>
+    <div class="pace-modal-form">
+      <div class="pace-modal-field">
+        <label for="paceTitleInput">タイトル</label>
+        <input type="text" id="paceTitleInput" value="ペース分析">
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <div class="pace-modal-field" style="flex: 1;">
+          <label for="startTagInput">開始 tag (ID)</label>
+          <input type="number" id="startTagInput" value="3" min="1">
+        </div>
+        <div class="pace-modal-field" style="flex: 1;">
+          <label for="endTagInput">終了 tag (ID)</label>
+          <input type="number" id="endTagInput" value="3" min="1">
+        </div>
+      </div>
+      <div class="pace-modal-toggle">
+        <span>外れ値を除く (IQR法)</span>
+        <label class="switch">
+          <input type="checkbox" id="removeOutliersToggle" checked>
+          <span class="slider-toggle"></span>
+        </label>
+      </div>
+    </div>
+    <div class="pace-modal-actions">
+      <button class="btn btn-secondary btn-small" id="cancelPaceModalBtn">キャンセル</button>
+      <button class="btn btn-small" id="confirmPaceModalBtn" style="width: auto; padding: 0 20px;">出力</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  const WINDOW_SIZE = 8;
+  const EXPECTED_FEATURE_DIM = 3024; // 216特徴量 × (8フレーム + 6統計)
+
   let session = null;
   let inputName = '';
   let outputNames = [];
+  let loadedModelName = "vampire_ver_1.1.onnx";
+
   let generatedCsvText = "";
   let generatedStepCsvText = "";
   let decodedAudioBuffer = null;
+  let loadedFileNameWithoutExt = "learning_matrix";
 
   let rawSpectrogramMatrix = [];
   let freqBinHzList = [];
   let frameStepSec = 0.01;
   let currentStartSec = 0;
   let currentEndSec = 0;
-  let editableHitFrames = [];
+
+  let teacherSteps = [];
+  let stepIdCounter = 0;
+  let selectedStepId = null;
   let verticalZoomFactor = 7.5;
+  let isDraggingStep = null;
+
   let cachedDeltaDbSeries = [];
   let cachedReleaseThreshSeries = [];
+  let cachedProbabilities = [];
+  let dynamicMinDb = -80;
+  let dynamicMaxDb = -10;
 
   const statusBar = document.getElementById('statusBar');
   const statusText = document.getElementById('statusText');
+  const modelBadge = document.getElementById('modelBadge');
+  const changeModelBtn = document.getElementById('changeModelBtn');
+  const modelFileInput = document.getElementById('modelFileInput');
   const fileInput = document.getElementById('mediaFile');
   const fileName = document.getElementById('fileName');
   const fileIcon = document.getElementById('fileIcon');
-  const paceSelect = document.getElementById('paceSelect');
-  const paceInput = document.getElementById('paceInput');
-  const paceRow = document.getElementById('paceRow');
   const analyzeBtn = document.getElementById('analyzeBtn');
   const downloadCsvBtn = document.getElementById('downloadCsvBtn');
   const downloadStepCsvBtn = document.getElementById('downloadStepCsvBtn');
@@ -633,7 +794,6 @@
   const progressBar = document.getElementById('progressBar');
   const progressFill = document.getElementById('progressFill');
   const canvas = document.getElementById('chart');
-  const modelSelector = document.getElementById('modelSelector');
 
   const rangeBox = document.getElementById('rangeBox');
   const startSlider = document.getElementById('startSlider');
@@ -645,6 +805,9 @@
   const callFreqInput = document.getElementById('callFreq');
   const callDurInput = document.getElementById('callDur');
   const detectCallBtn = document.getElementById('detectCallBtn');
+  const highThreshInput = document.getElementById('highThresh');
+  const lowThreshInput = document.getElementById('lowThresh');
+  const cooldownMsInput = document.getElementById('cooldownMs');
 
   const waveformCanvas = document.getElementById('waveformCanvas');
   const waveformCtx = waveformCanvas.getContext('2d');
@@ -662,11 +825,24 @@
   const zoomLabel = document.getElementById('zoomLabel');
   const downloadEditorPaceChartBtn = document.getElementById('downloadEditorPaceChartBtn');
 
-  function calculateCooldownMs(pace) {
-    const p = parseFloat(pace);
-    if (!p || p <= 0) return 0;
-    return 15000 / 1.2 / p;
-  }
+  const stepEditPanel = document.getElementById('stepEditPanel');
+  const stepRangeSlider = document.getElementById('stepRangeSlider');
+  const stepRangeLabel = document.getElementById('stepRangeLabel');
+  const selectedStepNum = document.getElementById('selectedStepNum');
+  const selectedStepFrame = document.getElementById('selectedStepFrame');
+  const deselectStepBtn = document.getElementById('deselectStepBtn');
+  const stepSelectionStatus = document.getElementById('stepSelectionStatus');
+  const selectedStepInfo = document.getElementById('selectedStepInfo');
+  const oddEvenIntervalDetail = document.getElementById('oddEvenIntervalDetail');
+
+  // ペース分析モーダル UI 要素
+  const paceModal = document.getElementById('paceModal');
+  const paceTitleInput = document.getElementById('paceTitleInput');
+  const startTagInput = document.getElementById('startTagInput');
+  const endTagInput = document.getElementById('endTagInput');
+  const removeOutliersToggle = document.getElementById('removeOutliersToggle');
+  const cancelPaceModalBtn = document.getElementById('cancelPaceModalBtn');
+  const confirmPaceModalBtn = document.getElementById('confirmPaceModalBtn');
 
   function setStatus(text, type = '') {
     statusText.textContent = text;
@@ -677,95 +853,97 @@
     else icon.textContent = 'hourglass_empty';
   }
 
-  paceSelect.onchange = () => {
-    if (paceSelect.value === 'custom') {
-      paceInput.style.display = 'block';
-    } else {
-      paceInput.style.display = 'none';
-      paceInput.value = paceSelect.value;
+  function framesToSteps(frameList) {
+    const sorted = [...frameList].sort((a, b) => a - b);
+    const steps = [];
+    let i = 0;
+    while (i < sorted.length) {
+      const start = sorted[i];
+      let j = i;
+      while (j + 1 < sorted.length && sorted[j + 1] === sorted[j] + 1) j++;
+      const runLength = j - i + 1;
+      const range = Math.max(2, Math.min(6, runLength - 1));
+      steps.push({ id: ++stepIdCounter, baseFrame: start, range: range });
+      i = j + 1;
     }
-  };
-
-  // Models/models.json から .onnx ファイル一覧を取得
-  // GitHub Pages ではフォルダのディレクトリ一覧(./Models/)を取得できないため、
-  // Models/models.json を正規のモデル一覧として使用する。
-  async function fetchModelList() {
-    try {
-      const manifestUrl = `./Models/models.json?v=${Date.now()}`;
-      const response = await fetch(manifestUrl, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Models/models.json の取得失敗 (${response.status})`);
-
-      const manifest = await response.json();
-      const modelFiles = Array.isArray(manifest)
-        ? manifest
-        : (Array.isArray(manifest.models) ? manifest.models : []);
-
-      const validModelFiles = modelFiles
-        .filter(file => typeof file === 'string' && /\.onnx$/i.test(file))
-        .map(file => file.split('/').pop())
-        .filter((file, index, arr) => arr.indexOf(file) === index);
-
-      if (validModelFiles.length === 0) {
-        throw new Error('Models/models.json に .onnx ファイルがありません。');
-      }
-
-      // 自然順ソート（バージョン番号を含むファイル名に対応）
-      validModelFiles.sort((a, b) =>
-        b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' })
-      );
-
-      modelSelector.innerHTML = '';
-      validModelFiles.forEach((file, index) => {
-        const option = document.createElement('option');
-        option.value = `./Models/${encodeURIComponent(file)}`;
-        const displayName = file.replace(/\.onnx$/i, '').replace(/_/g, ' ');
-        option.textContent = displayName;
-        if (index === 0) option.selected = true;
-        modelSelector.appendChild(option);
-      });
-
-      // 一覧の先頭＝最新モデルを自動ロード
-      await loadModel(modelSelector.value);
-
-    } catch (e) {
-      console.warn('Models 一覧自動取得失敗:', e);
-      // GitHub Pages で一覧取得に失敗した場合でも、既知の最新モデルを使用する。
-      modelSelector.innerHTML = `
-        <option value="./Models/vampire_ver_1.3.onnx">vampire ver 1.3</option>
-      `;
-      await loadModel(modelSelector.value);
-    }
+    return steps;
   }
 
-  async function loadModel(modelPath) {
-    try {
-      setStatus("モデル読み込み中...");
-      if (session) {
-        try { await session.release(); } catch(e) {}
-      }
-      session = await ort.InferenceSession.create(modelPath);
-      inputName = session.inputNames[0];
-      outputNames = session.outputNames;
+  function sortedBaseFrames() {
+    return teacherSteps.map(s => s.baseFrame).sort((a, b) => a - b);
+  }
 
-      setStatus("準備完了", "ready");
-      fileInput.disabled = false;
+  function findStepById(id) {
+    return teacherSteps.find(s => s.id === id) || null;
+  }
+
+  async function loadModelFromSource(source, displayName) {
+    let newSession;
+    if (source instanceof File) {
+      newSession = await ort.InferenceSession.create(await source.arrayBuffer());
+    } else {
+      newSession = await ort.InferenceSession.create(source);
+    }
+    session = newSession;
+    inputName = session.inputNames[0];
+    outputNames = session.outputNames;
+    loadedModelName = displayName || (typeof source === 'string' ? source.split('/').pop() : 'custom.onnx');
+    modelBadge.textContent = loadedModelName;
+    setStatus(`モデルロード成功 (${loadedModelName})`, "ready");
+    fileInput.disabled = false;
+  }
+
+  async function loadLatestModel() {
+    const candidatePaths = [];
+    for (let maj = 5; maj >= 1; maj--) {
+      for (let min = 20; min >= 0; min--) {
+        candidatePaths.push(`vampire_ver_${maj}.${min}.onnx`);
+        candidatePaths.push(`models/vampire_ver_${maj}.${min}.onnx`);
+        candidatePaths.push(`models/vampire_ver${maj}.${min}.onnx`);
+      }
+    }
+    candidatePaths.push('./footstep_lgbm.onnx');
+
+    let loaded = false;
+    for (const path of candidatePaths) {
+      try {
+        await loadModelFromSource(path, path.split('/').pop());
+        loaded = true;
+        break;
+      } catch (e) {
+        // 次のモデル候補を検索
+      }
+    }
+
+    if (!loaded) {
+      modelBadge.textContent = "モデル未読み込み";
+      setStatus("ONNXモデルが見つかりません。ディレクトリまたはmodelsフォルダを確認してください", "error");
+    }
+  }
+  updateStepEditPanel();
+  loadLatestModel();
+
+  changeModelBtn.onclick = () => modelFileInput.click();
+  modelFileInput.onchange = async () => {
+    const file = modelFileInput.files && modelFileInput.files[0];
+    if (!file) return;
+    try {
+      setStatus(`モデル読み込み中 (${file.name})...`);
+      await loadModelFromSource(file, file.name);
     } catch (e) {
       console.error(e);
-      setStatus("モデル読込失敗", "error");
+      setStatus(`モデル読み込みエラー: ${e.message}`, "error");
+    } finally {
+      modelFileInput.value = '';
     }
-  }
-
-  modelSelector.onchange = () => {
-    loadModel(modelSelector.value);
   };
-
-  fetchModelList();
 
   fileInput.onchange = async () => {
     if (!fileInput.files[0]) return;
 
     const file = fileInput.files[0];
     fileName.textContent = file.name;
+    loadedFileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
 
     if (file.name.toLowerCase().endsWith('.csv')) {
       fileIcon.textContent = 'table_chart';
@@ -779,7 +957,6 @@
   async function processCsvUpload(file) {
     analyzeBtn.disabled = true;
     rangeBox.style.display = 'none';
-    paceRow.style.display = 'none';
     decodedAudioBuffer = null;
 
     setStatus("CSVファイルをロード中...");
@@ -791,8 +968,7 @@
       const header = lines[0].split(',').map(h => h.trim());
       const isCountIdx = header.indexOf("Is_Count");
       const timeIdx = header.indexOf("Time_Sec");
-      const deltaDbIdx = header.indexOf("Delta_dB");
-      const releaseIdx = header.indexOf("Release_Threshold");
+      const probIdx = header.indexOf("Probability");
 
       if (isCountIdx === -1) {
         throw new Error("CSVに 'Is_Count' 列が存在しません。全判定データCSVを選択してください。");
@@ -812,9 +988,10 @@
       }
 
       rawSpectrogramMatrix = [];
-      editableHitFrames = [];
+      const flatHitFrames = [];
       cachedDeltaDbSeries = [];
       cachedReleaseThreshSeries = [];
+      cachedProbabilities = [];
 
       for (let fIdx = 1; fIdx < lines.length; fIdx++) {
         const line = lines[fIdx].trim();
@@ -827,13 +1004,15 @@
         }
         rawSpectrogramMatrix.push(bins);
 
-        if (deltaDbIdx !== -1) cachedDeltaDbSeries.push(parseFloat(cols[deltaDbIdx]) || 0);
-        if (releaseIdx !== -1) cachedReleaseThreshSeries.push(parseFloat(cols[releaseIdx]) || 0);
+        if (probIdx !== -1) cachedProbabilities.push(parseFloat(cols[probIdx]) || 0);
 
         if (parseInt(cols[isCountIdx]) === 1) {
-          editableHitFrames.push(rawSpectrogramMatrix.length - 1);
+          flatHitFrames.push(rawSpectrogramMatrix.length - 1);
         }
       }
+
+      teacherSteps = framesToSteps(flatHitFrames);
+      selectedStepId = null;
 
       if (timeIdx !== -1 && rawSpectrogramMatrix.length > 1) {
         currentStartSec = parseFloat(lines[1].split(',')[timeIdx]) || 0;
@@ -842,9 +1021,9 @@
         currentEndSec = currentStartSec + rawSpectrogramMatrix.length * frameStepSec;
       }
 
-      refreshOutputs(cachedDeltaDbSeries, cachedReleaseThreshSeries);
+      refreshOutputs();
       resultCard.style.display = 'block';
-      setStatus(`CSVの読み込み完了 (${editableHitFrames.length} ステップ)`, "ready");
+      setStatus(`CSVの読み込み完了 (${teacherSteps.length} ステップ)`, "ready");
     } catch (err) {
       console.error(err);
       setStatus(`CSV読込エラー: ${err.message}`, "error");
@@ -854,7 +1033,6 @@
   async function processAudioVideoUpload(file) {
     analyzeBtn.disabled = true;
     rangeBox.style.display = 'none';
-    paceRow.style.display = 'none';
     decodedAudioBuffer = null;
 
     setStatus("ファイルを読み込み中...");
@@ -877,8 +1055,7 @@
       endSlider.value = totalSec;
 
       rangeBox.style.display = 'flex';
-      paceRow.style.display = 'flex';
-      
+
       updateRangeUI();
       detectCallSignal(false);
 
@@ -892,7 +1069,6 @@
     }
   }
 
-  // 高速波形描画ロジック
   function drawWaveformFast() {
     if (!decodedAudioBuffer) return;
 
@@ -914,7 +1090,7 @@
       const start = i * step;
       const end = Math.min(start + step, channelData.length);
 
-      for (let j = start; j < end; j += 4) { // 4サンプル飛ばしで爆速化
+      for (let j = start; j < end; j += 4) {
         const val = channelData[j];
         if (val < min) min = val;
         if (val > max) max = val;
@@ -924,7 +1100,6 @@
       waveformCtx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
     }
 
-    // ハイライト描画 (シークバー範囲)
     const maxVal = parseFloat(startSlider.max) || 100;
     const startVal = parseFloat(startSlider.value);
     const endVal = parseFloat(endSlider.value);
@@ -1077,11 +1252,92 @@
     return merged.buffer;
   }
 
+  function extractWindowFeaturesFromMatrix(spectrogramMatrix, deltaDbSeries, releaseThreshSeries, windowSize = WINDOW_SIZE) {
+    const numFrames = spectrogramMatrix.length;
+    if (numFrames < windowSize) return { X: [], validIndices: [] };
+    const X = [];
+    const validIndices = [];
+    for (let i = windowSize - 1; i < numFrames; i++) {
+      const windowRows = [];
+      for (let w = i - windowSize + 1; w <= i; w++) {
+        windowRows.push([
+          ...Array.from(spectrogramMatrix[w]),
+          Number(deltaDbSeries[w] || 0),
+          Number(releaseThreshSeries[w] || 0)
+        ]);
+      }
+      const numCols = windowRows[0].length;
+      const rawFlat = [];
+      for (let r = 0; r < windowSize; r++) rawFlat.push(...windowRows[r]);
+      const fMean = new Float32Array(numCols);
+      const fStd = new Float32Array(numCols);
+      const fMin = new Float32Array(numCols);
+      const fMax = new Float32Array(numCols);
+      const fMeanAbsDiff = new Float32Array(numCols);
+      const fMaxAbsDiff = new Float32Array(numCols);
+      for (let c = 0; c < numCols; c++) {
+        let sum = 0, minV = Infinity, maxV = -Infinity;
+        for (let r = 0; r < windowSize; r++) {
+          const v = windowRows[r][c]; sum += v;
+          if (v < minV) minV = v; if (v > maxV) maxV = v;
+        }
+        const meanV = sum / windowSize;
+        fMean[c] = meanV; fMin[c] = minV; fMax[c] = maxV;
+        let varSum = 0, diffSum = 0, maxD = 0;
+        for (let r = 0; r < windowSize; r++) {
+          const d = windowRows[r][c] - meanV; varSum += d * d;
+          if (r > 0) {
+            const ad = Math.abs(windowRows[r][c] - windowRows[r - 1][c]);
+            diffSum += ad; if (ad > maxD) maxD = ad;
+          }
+        }
+        fStd[c] = Math.sqrt(varSum / windowSize);
+        fMeanAbsDiff[c] = diffSum / (windowSize - 1);
+        fMaxAbsDiff[c] = maxD;
+      }
+      const featVector = [
+        ...rawFlat, ...Array.from(fMean), ...Array.from(fStd),
+        ...Array.from(fMin), ...Array.from(fMax),
+        ...Array.from(fMeanAbsDiff), ...Array.from(fMaxAbsDiff)
+      ];
+      if (featVector.length !== EXPECTED_FEATURE_DIM) {
+        throw new Error(`特徴量次元数がモデルと一致しません: ${featVector.length}次元 / 期待値 ${EXPECTED_FEATURE_DIM}次元`);
+      }
+      X.push(featVector); validIndices.push(i);
+    }
+    return { X, validIndices };
+  }
+
+  function extractPositiveProbabilities(results, outputNames, batchLength) {
+    const probName = outputNames.find(name => name === 'probabilities') || outputNames.find(name => /prob/i.test(name));
+    if (!probName || !results[probName]) throw new Error(`ONNXモデルの確率出力が見つかりません。outputs=${JSON.stringify(outputNames)}`);
+    const value = results[probName];
+    if (value.data !== undefined && value.dims !== undefined) {
+      const data = value.data, dims = value.dims || [];
+      if (dims.length >= 2 && dims[dims.length - 1] >= 2) {
+        const classCount = dims[dims.length - 1];
+        return Array.from({length: batchLength}, (_, i) => Number(data[i * classCount + 1]) || 0);
+      }
+      if (data.length === batchLength) return Array.from(data, Number);
+    }
+    const raw = value.data;
+    if (raw instanceof Map) {
+      const out = [];
+      for (const entry of raw.values()) {
+        if (entry instanceof Map) out.push(Number(entry.get(1)) || 0);
+        else if (entry && typeof entry === 'object') out.push(Number(entry[1] ?? entry['1']) || 0);
+      }
+      if (out.length === batchLength) return out;
+    }
+    if (Array.isArray(raw)) {
+      const out = raw.map(entry => entry instanceof Map ? Number(entry.get(1)) || 0 : (entry && typeof entry === 'object' ? Number(entry[1] ?? entry['1']) || 0 : Number(entry) || 0));
+      if (out.length === batchLength) return out;
+    }
+    throw new Error(`ONNX確率出力を解析できません。output=${probName}`);
+  }
+
   analyzeBtn.onclick = async () => {
     if (!decodedAudioBuffer || !session) return;
-
-    const currentPace = paceSelect.value === 'custom' ? parseFloat(paceInput.value) : parseFloat(paceSelect.value);
-    const minDistanceMs = calculateCooldownMs(currentPace);
 
     currentStartSec = parseFloat(startSlider.value);
     currentEndSec = parseFloat(endSlider.value);
@@ -1093,8 +1349,6 @@
 
     analyzeBtn.disabled = true;
     fileInput.disabled = true;
-    paceSelect.disabled = true;
-    paceInput.disabled = true;
     detectCallBtn.disabled = true;
     downloadCsvBtn.disabled = true;
     downloadStepCsvBtn.disabled = true;
@@ -1114,19 +1368,47 @@
 
       const fftSize = 1024;
       frameStepSec = 0.01;
-      const hopSize = Math.round(sampleRateCache * frameStepSec);
-      const binHz = sampleRateCache / fftSize;
 
-      const maxFreqLimit = 10000;
-      const maxBinIdx = Math.floor(maxFreqLimit / binHz);
-      const numFreqBins = maxBinIdx + 1;
+      const MODEL_SAMPLE_RATE = 48000;
+
+      let analysisPcm = rawPcm;
+      if (sampleRateCache !== MODEL_SAMPLE_RATE) {
+        const targetLength = Math.max(
+          fftSize,
+          Math.ceil(rawPcm.length * MODEL_SAMPLE_RATE / sampleRateCache)
+        );
+        const offlineCtx = new OfflineAudioContext(
+          1,
+          targetLength,
+          MODEL_SAMPLE_RATE
+        );
+        const srcBuffer = offlineCtx.createBuffer(
+          1,
+          rawPcm.length,
+          sampleRateCache
+        );
+        srcBuffer.copyToChannel(rawPcm, 0);
+        const src = offlineCtx.createBufferSource();
+        src.buffer = srcBuffer;
+        src.connect(offlineCtx.destination);
+        src.start();
+        const rendered = await offlineCtx.startRendering();
+        analysisPcm = rendered.getChannelData(0);
+      }
+
+      const analysisSampleRate = MODEL_SAMPLE_RATE;
+      const hopSize = Math.round(analysisSampleRate * frameStepSec);
+      const binHz = analysisSampleRate / fftSize;
 
       freqBinHzList = [];
-      for (let k = 0; k <= maxBinIdx; k++) {
+      const binIndices = [];
+      const numFreqBins = 214;
+      for (let k = 0; k < numFreqBins; k++) {
+        binIndices.push(k);
         freqBinHzList.push(Math.round(k * binHz));
       }
 
-      const totalSteps = Math.floor((rawPcm.length - fftSize) / hopSize);
+      const totalSteps = Math.floor((analysisPcm.length - fftSize) / hopSize);
       if (totalSteps <= 0) throw new Error("指定された計測範囲が短すぎます");
 
       const windowFunc = new Float32Array(fftSize);
@@ -1137,18 +1419,19 @@
       setStatus("特徴量抽出中...");
       rawSpectrogramMatrix = [];
 
-      for (let i = 0, frameCount = 0; i <= rawPcm.length - fftSize; i += hopSize, frameCount++) {
+      for (let i = 0, frameCount = 0; i <= analysisPcm.length - fftSize; i += hopSize, frameCount++) {
         const bins = new Float32Array(numFreqBins);
-        for (let k = 0; k <= maxBinIdx; k++) {
+        for (let b = 0; b < numFreqBins; b++) {
+          const k = binIndices[b];
           let re = 0, im = 0;
           const omega = (2 * Math.PI * k) / fftSize;
           for (let n = 0; n < fftSize; n++) {
-            const sample = rawPcm[i + n] * windowFunc[n];
+            const sample = analysisPcm[i + n] * windowFunc[n];
             re += sample * Math.cos(omega * n);
             im -= sample * Math.sin(omega * n);
           }
           const mag = Math.sqrt(re * re + im * im) / (fftSize / 2);
-          bins[k] = mag > 0.00001 ? 20 * Math.log10(mag) : -100;
+          bins[b] = mag > 0.00001 ? 20 * Math.log10(mag) : -100;
         }
         rawSpectrogramMatrix.push(bins);
 
@@ -1189,36 +1472,65 @@
         cachedReleaseThreshSeries.push(currentThresh);
       }
 
+      setStatus("スライディングウィンドウ特徴量算出中...");
+      const { X: windowX, validIndices } = extractWindowFeaturesFromMatrix(
+        rawSpectrogramMatrix, cachedDeltaDbSeries, cachedReleaseThreshSeries, WINDOW_SIZE
+      );
+
       setStatus("推論実行中...");
-      editableHitFrames = [];
-      const minDistanceFrames = Math.floor((minDistanceMs / 1000) / frameStepSec);
-      let lastHitFrame = -minDistanceFrames;
+      cachedProbabilities = new Array(rawSpectrogramMatrix.length).fill(0.0);
 
-      for (let f = 0; f < rawSpectrogramMatrix.length; f++) {
-        const row219 = new Float32Array(219);
-        row219.set(rawSpectrogramMatrix[f], 0);
-        row219[214] = cachedDeltaDbSeries[f];
-        row219[215] = cachedReleaseThreshSeries[f];
-        row219[216] = 100.0;
-        row219[217] = 20.0;
-        row219[218] = 0.0;
-
-        const tensorInput = new ort.Tensor('float32', row219, [1, 219]);
-        const results = await session.run({ [inputName]: tensorInput }, [outputNames[0]]);
-        const isHit = (Number(results[outputNames[0]].data[0]) === 1);
-
-        if (isHit && (f - lastHitFrame) >= minDistanceFrames) {
-          editableHitFrames.push(f);
-          lastHitFrame = f;
+      const batchSize = 100;
+      for (let i = 0; i < windowX.length; i += batchSize) {
+        const batch = windowX.slice(i, i + batchSize);
+        const featDim = batch[0].length;
+        const flatData = new Float32Array(batch.length * featDim);
+        for (let r = 0; r < batch.length; r++) {
+          flatData.set(batch[r], r * featDim);
         }
 
-        if (f % 100 === 0 || f === rawSpectrogramMatrix.length - 1) {
-          progressFill.style.width = `${Math.round(((f + 1) / rawSpectrogramMatrix.length) * 100)}%`;
-          await new Promise(r => setTimeout(r, 0));
+        const tensorInput = new ort.Tensor('float32', flatData, [batch.length, featDim]);
+        const results = await session.run({ [inputName]: tensorInput });
+        
+        const batchProbs = extractPositiveProbabilities(results, outputNames, batch.length);
+
+        for (let r = 0; r < batch.length; r++) {
+          const frameIdx = validIndices[i + r];
+          cachedProbabilities[frameIdx] = batchProbs[r] || 0.0;
+        }
+
+        progressFill.style.width = `${Math.round(((i + batch.length) / windowX.length) * 100)}%`;
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      const highThresh = parseFloat(highThreshInput.value) || 0.65;
+      const lowThresh = parseFloat(lowThreshInput.value) || 0.35;
+      const cooldownMs = parseFloat(cooldownMsInput.value) >= 0 ? parseFloat(cooldownMsInput.value) : 60;
+
+      let isStateON = false;
+      const detectedHitFrames = [];
+      let lastHitFrame = -Infinity;
+      const cooldownFrames = Math.round((cooldownMs / 1000) / frameStepSec);
+
+      for (let f = 0; f < cachedProbabilities.length; f++) {
+        const p = cachedProbabilities[f];
+        if (!isStateON) {
+          if (p >= highThresh) {
+            if (f - lastHitFrame >= cooldownFrames) {
+              isStateON = true;
+              detectedHitFrames.push(f);
+              lastHitFrame = f;
+            }
+          }
+        } else if (p <= lowThresh) {
+          isStateON = false;
         }
       }
 
-      refreshOutputs(cachedDeltaDbSeries, cachedReleaseThreshSeries);
+      teacherSteps = framesToSteps(detectedHitFrames);
+      selectedStepId = null;
+
+      refreshOutputs();
 
       setStatus("解析完了", "ready");
       progressBar.style.display = "none";
@@ -1231,53 +1543,122 @@
     } finally {
       analyzeBtn.disabled = false;
       fileInput.disabled = false;
-      paceSelect.disabled = false;
-      paceInput.disabled = false;
       detectCallBtn.disabled = false;
     }
   };
 
-  function refreshOutputs(deltaDbSeries, releaseThreshSeries) {
-    editableHitFrames.sort((a, b) => a - b);
-    const rawHitCount = editableHitFrames.length;
+  function refreshOutputs() {
+    const activeFramesSet = new Set();
+    teacherSteps.forEach(s => {
+      for (let r = 0; r <= s.range; r++) {
+        if (s.baseFrame + r < rawSpectrogramMatrix.length) {
+          activeFramesSet.add(s.baseFrame + r);
+        }
+      }
+    });
+
+    const sortedBases = sortedBaseFrames();
+    const rawHitCount = sortedBases.length;
     const halvedCount = rawHitCount / 2;
 
     const intervalValuesForAvg = [];
     const intervalMsSeries = new Array(rawSpectrogramMatrix.length).fill("0.0");
 
-    for (let k = 1; k < editableHitFrames.length; k++) {
-      const diffMs = ((editableHitFrames[k] - editableHitFrames[k - 1]) * frameStepSec * 1000).toFixed(1);
-      intervalMsSeries[editableHitFrames[k]] = diffMs;
+    for (let k = 1; k < sortedBases.length; k++) {
+      const diffMs = ((sortedBases[k] - sortedBases[k - 1]) * frameStepSec * 1000).toFixed(1);
+      intervalMsSeries[sortedBases[k]] = diffMs;
       intervalValuesForAvg.push(parseFloat(diffMs));
     }
 
-    const csvHeader = ["Time_Sec", ...freqBinHzList.map(h => `${h}Hz`), "Delta_dB", "Release_Threshold", "Is_Count", "Interval_ms"];
+    // 全データ出力（Delta_dB, Release_Threshold などの非学習変数を削除し、データ・統計量・Probabilityを追加）
+    const numFreqBins = freqBinHzList.length;
+    const csvHeader = [
+      "Time_Sec",
+      ...freqBinHzList.map(h => `${h}Hz`),
+      ...freqBinHzList.map(h => `${h}Hz_ave`),
+      ...freqBinHzList.map(h => `${h}Hz_std`),
+      ...freqBinHzList.map(h => `${h}Hz_min`),
+      ...freqBinHzList.map(h => `${h}Hz_max`),
+      ...freqBinHzList.map(h => `${h}Hz_mean_abs_diff`),
+      ...freqBinHzList.map(h => `${h}Hz_max_abs_diff`),
+      "Probability",
+      "Is_Count"
+    ];
     const csvRows = [csvHeader.join(",")];
 
-    const dDb = deltaDbSeries || cachedDeltaDbSeries;
-    const rTh = releaseThreshSeries || cachedReleaseThreshSeries;
-
     for (let f = 0; f < rawSpectrogramMatrix.length; f++) {
-      const isCountVal = editableHitFrames.includes(f) ? 1 : 0;
-      csvRows.push([
-        (currentStartSec + f * frameStepSec).toFixed(3),
-        ...Array.from(rawSpectrogramMatrix[f]).map(v => v.toFixed(2)),
-        dDb && dDb[f] !== undefined ? dDb[f].toFixed(2) : "0.00",
-        rTh && rTh[f] !== undefined ? rTh[f].toFixed(2) : "0.00",
-        isCountVal,
-        intervalMsSeries[f]
-      ].join(","));
+      const isCountVal = activeFramesSet.has(f) ? 1 : 0;
+      const timeSecStr = (currentStartSec + f * frameStepSec).toFixed(3);
+      const rawBins = Array.from(rawSpectrogramMatrix[f]);
+
+      // ウィンドウ統計量の算出 (WINDOW_SIZE = 8)
+      const windowRows = [];
+      for (let w = Math.max(0, f - WINDOW_SIZE + 1); w <= f; w++) {
+        windowRows.push(rawSpectrogramMatrix[w]);
+      }
+      const actualWindowSize = windowRows.length;
+
+      const fMean = new Array(numFreqBins).fill(0);
+      const fStd = new Array(numFreqBins).fill(0);
+      const fMin = new Array(numFreqBins).fill(0);
+      const fMax = new Array(numFreqBins).fill(0);
+      const fMeanAbsDiff = new Array(numFreqBins).fill(0);
+      const fMaxAbsDiff = new Array(numFreqBins).fill(0);
+
+      for (let c = 0; c < numFreqBins; c++) {
+        let sum = 0, minV = Infinity, maxV = -Infinity;
+        for (let r = 0; r < actualWindowSize; r++) {
+          const v = windowRows[r][c];
+          sum += v;
+          if (v < minV) minV = v;
+          if (v > maxV) maxV = v;
+        }
+        const meanV = sum / actualWindowSize;
+        fMean[c] = meanV;
+        fMin[c] = minV;
+        fMax[c] = maxV;
+
+        let varSum = 0, diffSum = 0, maxD = 0;
+        for (let r = 0; r < actualWindowSize; r++) {
+          const d = windowRows[r][c] - meanV;
+          varSum += d * d;
+          if (r > 0) {
+            const ad = Math.abs(windowRows[r][c] - windowRows[r - 1][c]);
+            diffSum += ad;
+            if (ad > maxD) maxD = ad;
+          }
+        }
+        fStd[c] = Math.sqrt(varSum / actualWindowSize);
+        fMeanAbsDiff[c] = actualWindowSize > 1 ? diffSum / (actualWindowSize - 1) : 0;
+        fMaxAbsDiff[c] = maxD;
+      }
+
+      const probVal = (cachedProbabilities && cachedProbabilities[f] !== undefined) ? cachedProbabilities[f].toFixed(4) : "0.0000";
+
+      const rowData = [
+        timeSecStr,
+        ...rawBins.map(v => v.toFixed(2)),
+        ...fMean.map(v => v.toFixed(2)),
+        ...fStd.map(v => v.toFixed(2)),
+        ...fMin.map(v => v.toFixed(2)),
+        ...fMax.map(v => v.toFixed(2)),
+        ...fMeanAbsDiff.map(v => v.toFixed(2)),
+        ...fMaxAbsDiff.map(v => v.toFixed(2)),
+        probVal,
+        isCountVal
+      ];
+      csvRows.push(rowData.join(","));
     }
     generatedCsvText = csvRows.join("\n");
     downloadCsvBtn.disabled = false;
 
     const stepCsvRows = [["ID", "Count", "Timestamp_Sec", "Pace"].join(",")];
-    for (let k = 0; k < editableHitFrames.length; k++) {
-      const tsSec = currentStartSec + editableHitFrames[k] * frameStepSec;
+    for (let k = 0; k < sortedBases.length; k++) {
+      const tsSec = currentStartSec + sortedBases[k] * frameStepSec;
       const countVal = (k + 1) / 2;
       let paceVal = "";
       if (k > 0) {
-        const diffTs = tsSec - (currentStartSec + editableHitFrames[k - 1] * frameStepSec);
+        const diffTs = tsSec - (currentStartSec + sortedBases[k - 1] * frameStepSec);
         if (diffTs > 0) paceVal = (15 / diffTs).toFixed(2);
       }
       stepCsvRows.push([k + 1, countVal, tsSec.toFixed(3), paceVal].join(","));
@@ -1289,28 +1670,279 @@
       ? (intervalValuesForAvg.reduce((a, b) => a + b, 0) / intervalValuesForAvg.length).toFixed(1)
       : "0.0";
 
-    document.getElementById('countStepDisplay').textContent = `${halvedCount} (${rawHitCount})`;
+    const oddIntervals = [];
+    const evenIntervals = [];
+    for (let k = 2; k < sortedBases.length; k++) {
+      const diff = (sortedBases[k] - sortedBases[k - 1]) * frameStepSec * 1000;
+      if ((k + 1) % 2 === 1) oddIntervals.push(diff);
+      else evenIntervals.push(diff);
+    }
+    const oddAvg = oddIntervals.length ? (oddIntervals.reduce((a,b)=>a+b,0)/oddIntervals.length).toFixed(1) : '-';
+    const evenAvg = evenIntervals.length ? (evenIntervals.reduce((a,b)=>a+b,0)/evenIntervals.length).toFixed(1) : '-';
+
+    document.getElementById('countStepDisplay').textContent = `${halvedCount}`;
     document.getElementById('avgIntervalMs').textContent = avgInterval;
+    oddEvenIntervalDetail.textContent = `奇数: ${oddAvg}ms　偶数: ${evenAvg}ms`;
     document.getElementById('positiveFrames').textContent = rawHitCount;
 
     drawIntervalChart();
   }
 
-  downloadCsvBtn.onclick = () => downloadFile(generatedCsvText, `ddsc_matrix_${Date.now()}.csv`);
-  downloadStepCsvBtn.onclick = () => downloadFile(generatedStepCsvText, `ddsc_steplog_${Date.now()}.csv`);
-  downloadPaceChartBtn.onclick = () => exportChartAsImage();
-  downloadEditorPaceChartBtn.onclick = () => exportChartAsImage();
+  downloadCsvBtn.onclick = () => downloadFile(generatedCsvText, `${loadedFileNameWithoutExt}_matrix.csv`);
+  downloadStepCsvBtn.onclick = () => downloadFile(generatedStepCsvText, `${loadedFileNameWithoutExt}_steplog.csv`);
+  downloadPaceChartBtn.onclick = () => openPaceAnalysisModal();
+  downloadEditorPaceChartBtn.onclick = () => openPaceAnalysisModal();
 
-  function exportChartAsImage() {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = 800;
-    tempCanvas.height = 400;
-    drawIntervalChartToCanvas(tempCanvas);
+  function parseStepLogs() {
+    const lines = generatedStepCsvText.trim().split(/\r?\n/);
+    if (lines.length <= 1) return [];
+    const logs = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length >= 4) {
+        const id = parseInt(cols[0]);
+        const ts = parseFloat(cols[2]);
+        const val = cols[3] !== "" ? parseFloat(cols[3]) : null;
+        logs.push({ id, unixMs: ts * 1000, calculatedValue: val });
+      }
+    }
+    return logs;
+  }
 
-    const a = document.createElement('a');
-    a.href = tempCanvas.toDataURL('image/png');
-    a.download = `ddsc_pace_chart_${Date.now()}.png`;
-    a.click();
+  function openPaceAnalysisModal() {
+    const logs = parseStepLogs();
+    const validMaxId = logs.reduce((max, log) => log.id > max ? log.id : max, 0);
+
+    if (validMaxId < 3) {
+      alert("計測ログが3件未満のため、ペース分析を実行できません。");
+      return;
+    }
+
+    startTagInput.value = "3";
+    endTagInput.value = validMaxId.toString();
+    paceModal.classList.add('active');
+  }
+
+  cancelPaceModalBtn.onclick = () => {
+    paceModal.classList.remove('active');
+  };
+
+  confirmPaceModalBtn.onclick = () => {
+    const startTag = parseInt(startTagInput.value);
+    const endTag = parseInt(endTagInput.value);
+    const title = paceTitleInput.value.trim() || "ペース分析";
+    const removeOutliers = removeOutliersToggle.checked;
+
+    const logs = parseStepLogs();
+    const filteredLogs = logs.filter(l => l.id >= startTag && l.id <= endTag && l.calculatedValue !== null);
+
+    if (filteredLogs.length < 2) {
+      alert("指定された範囲内に有効なデータが2件以上ありません。");
+      return;
+    }
+
+    generateAndDownloadPaceChart(filteredLogs, logs[0].unixMs, title, removeOutliers);
+    paceModal.classList.remove('active');
+  };
+
+  function generateAndDownloadPaceChart(filteredLogs, baseUnixMs, title, removeOutliers) {
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = 1200;
+    exportCanvas.height = 700;
+    const ctx = exportCanvas.getContext('2d');
+
+    const P = filteredLogs.map(l => ({
+      x: (l.unixMs - baseUnixMs) / 1000,
+      y: l.calculatedValue,
+      id: l.id
+    }));
+
+    let P_valid = [];
+    let P_outlier = [];
+
+    if (removeOutliers) {
+      const yValues = P.map(p => p.y).sort((a, b) => a - b);
+      const getPercentile = (arr, p) => {
+        const idx = (arr.length - 1) * p;
+        const lower = Math.floor(idx);
+        const upper = Math.ceil(idx);
+        const weight = idx - lower;
+        return arr[lower] * (1 - weight) + arr[upper] * weight;
+      };
+
+      const Q1 = getPercentile(yValues, 0.25);
+      const Q3 = getPercentile(yValues, 0.75);
+      const IQR = Q3 - Q1;
+      const minAllowed = Q1 - 1.5 * IQR;
+      const maxAllowed = Q3 + 1.5 * IQR;
+
+      const validCandidate = P.filter(p => p.y >= minAllowed && p.y <= maxAllowed);
+      if (validCandidate.length >= 2) {
+        P_valid = validCandidate;
+        P_outlier = P.filter(p => p.y < minAllowed || p.y > maxAllowed);
+      } else {
+        P_valid = [...P];
+        P_outlier = [];
+      }
+    } else {
+      P_valid = [...P];
+      P_outlier = [];
+    }
+
+    const n = P_valid.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    for (let p of P_valid) {
+      sumX += p.x;
+      sumY += p.y;
+      sumXY += p.x * p.y;
+      sumX2 += p.x * p.x;
+    }
+
+    const a = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const b = (sumY - a * sumX) / n;
+
+    const x_start = P_valid[0].x;
+    const x_end = P_valid[n - 1].x;
+    const y_start = a * x_start + b;
+    const y_end = a * x_end + b;
+    const ratio = (y_end / y_start) * 100;
+
+    const bSign = b >= 0 ? '+' : '-';
+    const formulaStr = `y = ${a.toFixed(4)}x ${bSign} ${Math.abs(b).toFixed(2)} (${y_start.toFixed(2)} → ${y_end.toFixed(2)}) ${ratio.toFixed(1)}%`;
+
+    ctx.fillStyle = '#18181b';
+    ctx.fillRect(0, 0, 1200, 700);
+
+    const margin = { top: 80, right: 60, bottom: 80, left: 100 };
+    const plotW = 1040;
+    const plotH = 540;
+
+    ctx.fillStyle = '#f4f4f5';
+    ctx.font = 'bold 28px Roboto, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(title, 600, 45);
+
+    const allX = P.map(p => p.x);
+    const allY = P.map(p => p.y);
+    let minX = Math.min(...allX);
+    let maxX = Math.max(...allX);
+    let minY = Math.min(...allY);
+    let maxY = Math.max(...allY);
+
+    if (minX === maxX) { minX -= 1; maxX += 1; }
+    if (minY === maxY) { minY -= 1; maxY += 1; }
+
+    const padX = (maxX - minX) * 0.05;
+    const padY = (maxY - minY) * 0.08;
+    const plotMinX = minX - padX;
+    const plotMaxX = maxX + padX;
+    const plotMinY = minY - padY;
+    const plotMaxY = maxY + padY;
+
+    const mapX = (x) => margin.left + ((x - plotMinX) / (plotMaxX - plotMinX)) * plotW;
+    const mapY = (y) => margin.top + plotH - ((y - plotMinY) / (plotMaxY - plotMinY)) * plotH;
+
+    ctx.strokeStyle = '#3f3f46';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#71717a';
+    ctx.font = '14px Roboto, sans-serif';
+
+    for (let i = 0; i <= 5; i++) {
+      const gx = margin.left + (plotW / 5) * i;
+      const valX = plotMinX + ((plotMaxX - plotMinX) / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(gx, margin.top);
+      ctx.lineTo(gx, margin.top + plotH);
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.fillText(valX.toFixed(1), gx, margin.top + plotH + 25);
+    }
+
+    for (let i = 0; i <= 5; i++) {
+      const gy = margin.top + (plotH / 5) * i;
+      const valY = plotMaxY - ((plotMaxY - plotMinY) / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(margin.left, gy);
+      ctx.lineTo(margin.left + plotW, gy);
+      ctx.stroke();
+      ctx.textAlign = 'right';
+      ctx.fillText(valY.toFixed(1), margin.left - 15, gy + 5);
+    }
+
+    ctx.strokeStyle = '#3f3f46';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(margin.left, margin.top, plotW, plotH);
+
+    ctx.fillStyle = '#f4f4f5';
+    ctx.font = '16px Roboto, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('時間 (s)', margin.left + plotW / 2, 670);
+
+    ctx.save();
+    ctx.translate(35, margin.top + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('ペース', 0, 0);
+    ctx.restore();
+
+    ctx.strokeStyle = '#007aff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i < P_valid.length; i++) {
+      const px = mapX(P_valid[i].x);
+      const py = mapY(P_valid[i].y);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = '#5AC8FA';
+    for (let p of P_valid) {
+      ctx.beginPath();
+      ctx.arc(mapX(p.x), mapY(p.y), 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#71717a';
+    for (let p of P_outlier) {
+      ctx.beginPath();
+      ctx.arc(mapX(p.x), mapY(p.y), 4.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = '#ff3b30';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    const trendY1 = a * plotMinX + b;
+    const trendY2 = a * plotMaxX + b;
+    ctx.moveTo(mapX(plotMinX), mapY(trendY1));
+    ctx.lineTo(mapX(plotMaxX), mapY(trendY2));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = '16px Roboto, sans-serif';
+    const textWidth = ctx.measureText(formulaStr).width;
+    const boxWidth = textWidth + 30;
+    const boxHeight = 40;
+    const boxX = margin.left + 20;
+    const boxY = margin.top + 20;
+
+    ctx.fillStyle = 'rgba(24, 24, 27, 0.9)';
+    ctx.strokeStyle = '#3f3f46';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ff3b30';
+    ctx.textAlign = 'left';
+    ctx.fillText(formulaStr, boxX + 15, boxY + 25);
+
+    const aTag = document.createElement('a');
+    aTag.href = exportCanvas.toDataURL('image/png');
+    aTag.download = `${title}.png`;
+    aTag.click();
   }
 
   function downloadFile(content, filename) {
@@ -1333,7 +1965,8 @@
     const height = targetCanvas.height = targetCanvas.clientHeight || targetCanvas.height;
     cCtx.clearRect(0, 0, width, height);
 
-    if (editableHitFrames.length < 2) {
+    const sortedBases = sortedBaseFrames();
+    if (sortedBases.length < 2) {
       cCtx.fillStyle = '#94a3b8';
       cCtx.font = '12px Roboto, sans-serif';
       cCtx.textAlign = 'center';
@@ -1342,9 +1975,9 @@
     }
 
     const points = [];
-    for (let k = 1; k < editableHitFrames.length; k++) {
-      const currSec = currentStartSec + editableHitFrames[k] * frameStepSec;
-      const prevSec = currentStartSec + editableHitFrames[k - 1] * frameStepSec;
+    for (let k = 1; k < sortedBases.length; k++) {
+      const currSec = currentStartSec + sortedBases[k] * frameStepSec;
+      const prevSec = currentStartSec + sortedBases[k - 1] * frameStepSec;
       points.push({ time: currSec, interval: (currSec - prevSec) * 1000 });
     }
 
@@ -1399,16 +2032,9 @@
     }
   }
 
-  // ==========================================
-  // デバッグエディタ
-  // ==========================================
-  let isDraggingStep = null;
-  let dynamicMinDb = -80;
-  let dynamicMaxDb = -10;
-
   verticalZoomInput.oninput = () => {
     verticalZoomFactor = parseFloat(verticalZoomInput.value);
-    zoomLabel.textContent = `${verticalZoomFactor}x`;
+    zoomLabel.textContent = `${Math.round((verticalZoomFactor / 15) * 100)}%`;
     renderDebugEditor();
   };
 
@@ -1454,7 +2080,6 @@
     const norm = Math.max(0, Math.min(1, (valDb - dynamicMinDb) / (dynamicMaxDb - dynamicMinDb)));
 
     let r = 0, g = 0, b = 0;
-    
     if (norm < 0.35) {
       const t = norm / 0.35;
       r = 235;
@@ -1469,6 +2094,79 @@
     return `rgb(${r},${g},${b})`;
   }
 
+  function getIntervalColor(interval, minI, avgI, maxI) {
+    if (minI === maxI) return 'rgb(255, 255, 255)';
+    let r, g, b;
+    if (interval <= avgI) {
+      const t = (avgI - minI) > 0 ? Math.max(0, Math.min(1, (interval - minI) / (avgI - minI))) : 1;
+      r = Math.round(239 + (255 - 239) * t);
+      g = Math.round(68 + (255 - 68) * t);
+      b = Math.round(68 + (255 - 68) * t);
+    } else {
+      const t = (maxI - avgI) > 0 ? Math.max(0, Math.min(1, (interval - avgI) / (maxI - avgI))) : 1;
+      r = Math.round(255 + (34 - 255) * t);
+      g = Math.round(255 + (195 - 255) * t);
+      b = Math.round(255 + (94 - 255) * t);
+    }
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function updateStepEditPanel() {
+    const step = findStepById(selectedStepId);
+    if (!step) {
+      stepSelectionStatus.textContent = '非選択中';
+      selectedStepInfo.style.display = 'none';
+      stepEditPanel.classList.add('step-edit-panel-disabled');
+      stepRangeSlider.disabled = true;
+      deselectStepBtn.disabled = true;
+      stepRangeLabel.textContent = '-';
+      selectedStepNum.textContent = '-';
+      selectedStepFrame.textContent = '-';
+      return;
+    }
+    const sorted = sortedBaseFrames();
+    const idx = sorted.indexOf(step.baseFrame);
+    stepSelectionStatus.textContent = '選択中';
+    selectedStepInfo.style.display = 'inline';
+    stepEditPanel.classList.remove('step-edit-panel-disabled');
+    stepRangeSlider.disabled = false;
+    deselectStepBtn.disabled = false;
+    selectedStepNum.textContent = (idx >= 0 ? idx + 1 : '-');
+    selectedStepFrame.textContent = step.baseFrame;
+    stepRangeSlider.value = step.range;
+    stepRangeLabel.textContent = step.range;
+  }
+
+  stepRangeSlider.oninput = () => {
+    const step = findStepById(selectedStepId);
+    if (step) {
+      step.range = parseInt(stepRangeSlider.value);
+      stepRangeLabel.textContent = step.range;
+      renderDebugEditor();
+    }
+  };
+
+  deselectStepBtn.onclick = () => {
+    selectedStepId = null;
+    updateStepEditPanel();
+    renderDebugEditor();
+  };
+
+  window.addEventListener('keydown', (e) => {
+    if (!debugModal.classList.contains('active')) return;
+    if (!selectedStepId) return;
+
+    if (['3', '4', '5', '6', '2'].includes(e.key)) {
+      const step = findStepById(selectedStepId);
+      if (step) {
+        step.range = parseInt(e.key);
+        updateStepEditPanel();
+        renderDebugEditor();
+        debugStatusText.textContent = `ステップの範囲を ${step.range} に変更しました`;
+      }
+    }
+  });
+
   function renderDebugEditor() {
     const containerWidth = debugCanvasContainer.clientWidth;
     const rowHeight = verticalZoomFactor;
@@ -1477,12 +2175,8 @@
     const nextCanvasWidth = Math.max(300, containerWidth);
     const nextCanvasHeight = Math.max(debugCanvasContainer.clientHeight, totalFrames * rowHeight);
 
-    if (debugCanvas.width !== nextCanvasWidth) {
-      debugCanvas.width = nextCanvasWidth;
-    }
-    if (debugCanvas.height !== nextCanvasHeight) {
-      debugCanvas.height = nextCanvasHeight;
-    }
+    if (debugCanvas.width !== nextCanvasWidth) debugCanvas.width = nextCanvasWidth;
+    if (debugCanvas.height !== nextCanvasHeight) debugCanvas.height = nextCanvasHeight;
 
     debugCanvas.style.width = `${nextCanvasWidth}px`;
     debugCanvas.style.height = `${nextCanvasHeight}px`;
@@ -1560,36 +2254,81 @@
     debugCtx.fill();
     debugCtx.stroke();
 
+    const sortedSteps = [...teacherSteps].sort((a, b) => a.baseFrame - b.baseFrame);
+    const stepOrderMap = new Map();
+    const intervals = [];
+
+    sortedSteps.forEach((s, idx) => {
+      stepOrderMap.set(s.id, idx + 1);
+      if (idx > 0) {
+        const interval = (s.baseFrame - sortedSteps[idx - 1].baseFrame) * frameStepSec * 1000;
+        intervals.push(interval);
+      }
+    });
+
+    const minInterval = intervals.length > 0 ? Math.min(...intervals) : 0;
+    const maxInterval = intervals.length > 0 ? Math.max(...intervals) : 0;
+    const avgInterval = intervals.length > 0 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 0;
+
     debugCtx.font = '18px "Material Icons"';
     debugCtx.textAlign = 'center';
     debugCtx.textBaseline = 'middle';
 
-    editableHitFrames.forEach((frameIdx) => {
+    teacherSteps.forEach((step) => {
+      const frameIdx = step.baseFrame;
       if (frameIdx < startFrame - 10 || frameIdx > endFrame + 10) return;
-      const y = frameIdx * rowHeight;
 
-      debugCtx.strokeStyle = '#000000';
-      debugCtx.lineWidth = 2.5;
-      debugCtx.beginPath();
-      debugCtx.moveTo(40, y);
-      debugCtx.lineTo(width - 40, y);
-      debugCtx.stroke();
+      const topY = frameIdx * rowHeight;
+      const boxHeight = (step.range + 1) * rowHeight;
+      const isSelected = (step.id === selectedStepId);
+
+      debugCtx.fillStyle = isSelected ? 'rgba(34, 211, 238, 0.25)' : 'rgba(249, 115, 22, 0.15)';
+      debugCtx.fillRect(50, topY, width - 110, boxHeight);
+
+      debugCtx.strokeStyle = isSelected ? '#22d3ee' : '#f97316';
+      debugCtx.lineWidth = isSelected ? 3 : 1.5;
+      debugCtx.strokeRect(50, topY, width - 110, boxHeight);
+
+      const seqNum = stepOrderMap.get(step.id) || 0;
+      let intervalStr = "0.0";
+      let intervalVal = 0;
+      if (seqNum > 1) {
+        const prevStep = sortedSteps[seqNum - 2];
+        intervalVal = (step.baseFrame - prevStep.baseFrame) * frameStepSec * 1000;
+        intervalStr = intervalVal.toFixed(1);
+      }
+
+      const labelText = `#${seqNum} ${intervalStr}ms`;
+      const labelColor = seqNum > 1 ? getIntervalColor(intervalVal, minInterval, avgInterval, maxInterval) : '#ffffff';
+
+      debugCtx.save();
+      debugCtx.font = 'bold 11px Roboto, sans-serif';
+      debugCtx.textAlign = 'left';
+      debugCtx.textBaseline = 'bottom';
+      const labelWidth = debugCtx.measureText(labelText).width + 8;
+      debugCtx.fillStyle = '#000000';
+      debugCtx.fillRect(47, topY - 15, labelWidth, 14);
+      debugCtx.fillStyle = labelColor;
+      debugCtx.fillText(labelText, 51, topY - 3);
+      debugCtx.restore();
+
+      const midY = topY + boxHeight / 2;
 
       debugCtx.fillStyle = '#ffffff';
       debugCtx.beginPath();
-      debugCtx.arc(20, y, 16, 0, Math.PI * 2);
+      debugCtx.arc(20, midY, 16, 0, Math.PI * 2);
       debugCtx.fill();
 
       debugCtx.fillStyle = '#ef4444';
-      debugCtx.fillText('delete', 20, y);
+      debugCtx.fillText('delete', 20, midY);
 
       debugCtx.fillStyle = '#ffffff';
       debugCtx.beginPath();
-      debugCtx.arc(width - 20, y, 16, 0, Math.PI * 2);
+      debugCtx.arc(width - 20, midY, 16, 0, Math.PI * 2);
       debugCtx.fill();
 
       debugCtx.fillStyle = '#0284c7';
-      debugCtx.fillText('open_with', width - 20, y);
+      debugCtx.fillText('open_with', width - 20, midY);
     });
   }
 
@@ -1611,26 +2350,57 @@
   function handlePointerDown(e) {
     const { x, y } = getCanvasCoords(e);
     const rowHeight = verticalZoomFactor;
-    const touchMargin = Math.max(20, rowHeight * 1.5);
+
+    let hitIndex = -1;
+    let hitStep = null;
+
+    for (let i = 0; i < teacherSteps.length; i++) {
+      const s = teacherSteps[i];
+      const topY = s.baseFrame * rowHeight;
+      const botY = topY + (s.range + 1) * rowHeight;
+      const margin = Math.max(12, rowHeight * 1.5);
+      if (y >= topY - margin && y <= botY + margin) {
+        hitIndex = i;
+        hitStep = s;
+        break;
+      }
+    }
 
     if (x <= 50) {
-      const targetIdx = editableHitFrames.findIndex(f => Math.abs(f * rowHeight - y) < touchMargin);
-      if (targetIdx >= 0) {
-        editableHitFrames.splice(targetIdx, 1);
+      if (hitIndex >= 0) {
+        if (selectedStepId === hitStep.id) {
+          selectedStepId = null;
+          updateStepEditPanel();
+        }
+        teacherSteps.splice(hitIndex, 1);
         renderDebugEditor();
-        debugStatusText.textContent = `ステップを削除しました (残り: ${editableHitFrames.length}件)`;
+        debugStatusText.textContent = `ステップを削除しました (残り: ${teacherSteps.length}件)`;
         if (e.cancelable) e.preventDefault();
       }
       return;
     }
 
     if (x >= debugCanvas.width - 60) {
-      const targetIdx = editableHitFrames.findIndex(f => Math.abs(f * rowHeight - y) < touchMargin);
-      if (targetIdx >= 0) {
-        isDraggingStep = targetIdx;
-        debugStatusText.textContent = `ステップ #${targetIdx + 1} をドラッグ移動中...`;
+      if (hitIndex >= 0) {
+        isDraggingStep = hitIndex;
+        selectedStepId = hitStep.id;
+        updateStepEditPanel();
+        debugStatusText.textContent = `ステップドラッグ移動中...`;
+        renderDebugEditor();
         if (e.cancelable) e.preventDefault();
       }
+      return;
+    }
+
+    if (hitStep) {
+      selectedStepId = hitStep.id;
+      updateStepEditPanel();
+      renderDebugEditor();
+      debugStatusText.textContent = `ステップを選択しました (範囲: ${hitStep.range})`;
+    } else {
+      selectedStepId = null;
+      updateStepEditPanel();
+      renderDebugEditor();
     }
   }
 
@@ -1641,8 +2411,9 @@
     const rowHeight = verticalZoomFactor;
 
     const newFrame = Math.max(0, Math.min(rawSpectrogramMatrix.length - 1, Math.floor(y / rowHeight)));
-    editableHitFrames[isDraggingStep] = newFrame;
-    
+    teacherSteps[isDraggingStep].baseFrame = newFrame;
+    updateStepEditPanel();
+
     requestAnimationFrame(renderDebugEditor);
     if (e.cancelable) e.preventDefault();
   }
@@ -1650,7 +2421,8 @@
   function handlePointerUp() {
     if (isDraggingStep !== null) {
       isDraggingStep = null;
-      editableHitFrames.sort((a, b) => a - b);
+      teacherSteps.sort((a, b) => a.baseFrame - b.baseFrame);
+      updateStepEditPanel();
       renderDebugEditor();
       debugStatusText.textContent = "ステップ位置を移動・確定しました";
     }
@@ -1670,15 +2442,19 @@
     const centerFrame = Math.floor((debugCanvasContainer.scrollTop + debugCanvasContainer.clientHeight / 2) / rowHeight);
     const targetFrame = Math.max(0, Math.min(rawSpectrogramMatrix.length - 1, centerFrame));
 
-    editableHitFrames.push(targetFrame);
-    editableHitFrames.sort((a, b) => a - b);
+    const newStep = { id: ++stepIdCounter, baseFrame: targetFrame, range: 3 };
+    teacherSteps.push(newStep);
+    teacherSteps.sort((a, b) => a.baseFrame - b.baseFrame);
+    selectedStepId = newStep.id;
+
+    updateStepEditPanel();
     renderDebugEditor();
-    debugStatusText.textContent = `画面中央にステップを追加しました (合計: ${editableHitFrames.length}件)`;
+    debugStatusText.textContent = `画面中央にステップを追加しました (合計: ${teacherSteps.length}件)`;
   };
 
   exportLearningCsvBtn.onclick = () => {
     refreshOutputs();
-    downloadFile(generatedCsvText, `learning_matrix_${Date.now()}.csv`);
+    downloadFile(generatedCsvText, `${loadedFileNameWithoutExt}_learning_matrix_${Date.now()}.csv`);
     debugModal.classList.remove('active');
     setStatus("学習用CSVを出力しました", "ready");
   };
